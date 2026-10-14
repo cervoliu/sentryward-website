@@ -5,6 +5,16 @@ The SentryWard project website and technical blog, maintained in
 
 This is a static HTML, CSS, and JavaScript site. No build step or package installation is required.
 
+## Publishing
+
+GitHub Pages publishes the repository root from `main`. Changes pushed to `main` deploy automatically.
+The custom domain is [sentryward.io](https://sentryward.io); keep the root `CNAME` file in the repository.
+
+Namecheap manages DNS. The root host (`@`) uses these GitHub Pages A records:
+`185.199.108.153`, `185.199.109.153`, `185.199.110.153`, and `185.199.111.153`.
+The `www` host is a CNAME pointing to `gpu-verifier.github.io`.
+GitHub Pages redirects `www.sentryward.io` to the root domain once DNS and its HTTPS certificate are ready.
+
 ## Preview locally
 
 From the repository root:
