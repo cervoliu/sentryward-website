@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SentryWard — Automatic Formal Verification of GPU Kernels</title>
+<meta name="description" content="SentryWard automatically and formally verifies NVIDIA Blackwell GPU kernels in PTX. Prove synchronization and race freedom, or add a PyTorch reference to prove mathematical correctness.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="release-page">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="topbar"><div class="in">
+  <a class="brand" href="./" aria-label="SentryWard home">SentryWard</a>
+  <nav class="topnav" aria-label="Main navigation"><a href="#usage">Usage</a><a href="#properties">Properties</a><a href="blog/">Blog</a></nav>
+</div></header>
+
+<main id="main" class="release">
+  <section class="hero" aria-labelledby="release-title">
+    <p class="eyebrow">Formal verification &middot; NVIDIA Blackwell</p>
+    <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
+    <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
+    <div class="actions"><a class="button primary" href="#get-started">Get started <span aria-hidden="true">&rarr;</span></a><a class="button" href="blog/verifying-warp-specialized-gpu-kernels/">How it works</a></div>
+  </section>
+
+  <section class="release-section" id="usage" aria-labelledby="usage-title">
+    <h2 id="usage-title">What goes in. What comes out.</h2>
+    <div class="io-grid">
+      <div class="io-column">
+        <h3>Input</h3>
+        <dl class="io-list">
+          <div><dt>PTX kernel</dt><dd>Your compiled NVIDIA GPU kernel.</dd></div>
+          <div><dt>Input configuration</dt><dd>A JSON file describing input shapes, launch dimensions, kernel parameters, and any TMA descriptors.</dd></div>
+          <div><dt>Optional PyTorch reference</dt><dd>A <code>reference(...)</code> function and a binding that maps its arguments and outputs to the kernel. No separate reference input file is needed.</dd></div>
+        </dl>
+      </div>
+      <div class="io-column">
+        <h3>Output</h3>
+        <dl class="io-list">
+          <div><dt>A clear verdict</dt><dd><code>race_free</code> means synchronization and memory checks passed without a reference. <code>verified</code> means reference equivalence was proved too.</dd></div>
+          <div><dt>Check results and witnesses</dt><dd>JSON from the CLI, or a Python dictionary, with each check&rsquo;s status and evidence for findings such as <code>potential_race</code>.</dd></div>
+          <div><dt>Explicit limits</dt><dd><code>unsupported</code> or <code>timeout</code> explains why analysis stopped. An undecided check is never reported as a pass.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="release-section" id="properties" aria-labelledby="properties-title">
+    <h2 id="properties-title">What SentryWard verifies</h2>
+    <dl class="property-list">
+      <div><dt>Synchronization &amp; deadlocks</dt><dd>Barriers and mbarriers, including TMA byte counts, behave consistently across schedules, ruling out deadlocks.</dd></div>
+      <div><dt>Data races</dt><dd>Conflicting accesses to global, shared, and tensor memory are ordered, including asynchronous copies and tensor-core operations.</dd></div>
+      <div><dt>Resource lifetimes</dt><dd>Tensor memory and barriers are never used after they are freed or invalidated.</dd></div>
+      <div><dt>Mathematical correctness</dt><dd>The kernel&rsquo;s outputs equal those of your PyTorch reference in real arithmetic.</dd></div>
+      <div><dt>Unnecessary waits</dt><dd>Use verification to remove redundant synchronization: remove an operation, then verify again. Safe removals depend on the input shape.</dd></div>
+    </dl>
+    <p class="scope-note">Covers Blackwell TMA, <code>tcgen05</code> MMA and tensor memory, mbarriers, thread-block clusters, and asynchronous copies. Proofs apply to fixed shapes and launches. By default, control flow cannot depend on tensor data. Floating-point rounding, fences, and the full PTX memory model are not modeled. <a href="https://github.com/wmdi/wasp_verification/blob/main/README.md#limitations">Scope and limitations <span aria-hidden="true">&rarr;</span></a></p>
+  </section>
+
+  <section class="release-section" id="get-started" aria-labelledby="start-title">
+    <h2 id="start-title">Try it on your kernel</h2>
+    <p class="reading">With Python 3.10 or newer, install and run synchronization and memory checks:</p>
+    <pre class="install" tabindex="0" aria-label="Install and verify from the command line"><code>pip install sentryward
+sentryward kernel.ptx \
+  --input input.json &gt; output.json</code></pre>
+    <p class="reading">The CLI prints JSON; the command above saves it to <code>output.json</code>.</p>
+    <details class="usage-details">
+      <summary>Also prove mathematical correctness</summary>
+      <pre class="install" tabindex="0" aria-label="Verify against a PyTorch reference"><code>pip install "sentryward[reference]"
+sentryward kernel.ptx \
+  --input input.json \
+  --reference reference.py \
+  --reference-binding reference_binding.json \
+  &gt; output.json</code></pre>
+    </details>
+    <details class="usage-details">
+      <summary>Use the Python API</summary>
+      <pre class="install" tabindex="0" aria-label="Verify from Python"><code>from sentryward import verify
+
+result = verify(
+    "kernel.ptx",
+    input="input.json",
+    reference="reference.py",                    # optional
+    reference_binding="reference_binding.json",  # optional
+)
+print(result["result"], result["checks"])</code></pre>
+      <p class="scope-note">Install <code>sentryward[reference]</code> when supplying a PyTorch reference.</p>
+    </details>
+    <p class="reading scope-note"><a href="https://github.com/wmdi/wasp_verification/blob/main/README.md#getting-started">Full usage and options</a>, including time and memory limits.</p>
+    <p class="read-next"><a href="blog/verifying-warp-specialized-gpu-kernels/">Read the technical post for the algorithms, examples, and results <span aria-hidden="true">&rarr;</span></a></p>
+  </section>
+</main>
+<footer><div class="footer-in"><span>SentryWard</span><nav aria-label="Footer navigation"><a href="blog/">Blog</a><a href="https://github.com/wmdi/wasp_verification">GitHub</a><span>Paper (coming soon)</span></nav></div></footer>
+</body>
+</html>
