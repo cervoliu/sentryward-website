@@ -57,7 +57,7 @@
       <div><dt>Mathematical correctness</dt><dd>The kernel&rsquo;s outputs equal those of your PyTorch reference in real arithmetic.</dd></div>
       <div><dt>Unnecessary waits</dt><dd>Use verification to remove redundant synchronization: remove an operation, then verify again. Safe removals depend on the input shape.</dd></div>
     </dl>
-    <p class="scope-note">Covers Blackwell TMA, <code>tcgen05</code> MMA and tensor memory, mbarriers, thread-block clusters, and asynchronous copies. Proofs apply to fixed shapes and launches. By default, control flow cannot depend on tensor data. Floating-point rounding, fences, and the full PTX memory model are not modeled. <a href="https://github.com/wmdi/wasp_verification/blob/main/README.md#limitations">Scope and limitations <span aria-hidden="true">&rarr;</span></a></p>
+    <p class="scope-note">Covers Blackwell TMA, <code>tcgen05</code> MMA and tensor memory, mbarriers, thread-block clusters, and asynchronous copies. Proofs apply to fixed shapes and launches. By default, control flow cannot depend on tensor data. Floating-point rounding, fences, and the full PTX memory model are not modeled. <a href="https://github.com/gpu-verifier/sentryward/blob/main/README.md#limitations">Scope and limitations <span aria-hidden="true">&rarr;</span></a></p>
   </section>
 
   <section class="release-section" id="get-started" aria-labelledby="start-title">
@@ -89,10 +89,10 @@ result = verify(
 print(result["result"], result["checks"])</code></pre>
       <p class="scope-note">Install <code>sentryward[reference]</code> when supplying a PyTorch reference.</p>
     </details>
-    <p class="reading scope-note"><a href="https://github.com/wmdi/wasp_verification/blob/main/README.md#getting-started">Full usage and options</a>, including time and memory limits.</p>
+    <p class="reading scope-note"><a href="https://github.com/gpu-verifier/sentryward/blob/main/README.md#getting-started">Full usage and options</a>, including time and memory limits.</p>
     <p class="read-next"><a href="blog/verifying-warp-specialized-gpu-kernels/">Read the technical post for the algorithms, examples, and results <span aria-hidden="true">&rarr;</span></a></p>
   </section>
 </main>
-<footer><div class="footer-in"><span>SentryWard</span><nav aria-label="Footer navigation"><a href="blog/">Blog</a><a href="https://github.com/wmdi/wasp_verification">GitHub</a><span>Paper (coming soon)</span></nav></div></footer>
+<footer><div class="footer-in"><span>SentryWard</span><nav aria-label="Footer navigation"><a href="blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav></div></footer>
 </body>
 </html>

@@ -44,4 +44,4 @@ The site was migrated from the `blog/` directory of
 [wmdi/wasp_verification](https://github.com/wmdi/wasp_verification/tree/4645264bcbc910aee813db3a67f60ef4a4a190dd/blog),
 including the saved homepage and blog navigation updates. The original Apache 2.0 license is preserved in [LICENSE](LICENSE).
 
-The verifier implementation remains in [wmdi/wasp_verification](https://github.com/wmdi/wasp_verification).
+The verifier implementation is in [gpu-verifier/sentryward](https://github.com/gpu-verifier/sentryward).

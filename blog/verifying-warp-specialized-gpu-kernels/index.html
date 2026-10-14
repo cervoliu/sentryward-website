@@ -23,9 +23,7 @@
 <article id="main">
 <div class="crumb"><a href="../">Blog</a><span aria-hidden="true"> / </span>Technical walkthrough</div>
 <h1>SentryWard: Formal Verification of Warp-Specialized GPU Kernels</h1>
-<div class="meta"><span class="tbd">[Date]</span></div>
-<div class="authors"><span class="tbd">[Authors]</span></div>
-<div class="links">GitHub <span class="soon">(coming soon)</span><span class="sep">|</span>Paper <span class="soon">(coming soon)</span></div>
+<div class="links"><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></div>
 
 <nav class="post-toc" aria-label="In this article">
   <p>In this article</p>
@@ -130,7 +128,7 @@ st.global(C[t, :] &larr; r)</pre>
   <figcaption>Figure 6: Phase 0 of <code>full</code>, restricted to its updates; arrows show their order. With separate announcements (a), the two red updates can complete the phase early. In the correct kernel (b), only all three together can complete it.</figcaption>
 </figure>
 
-<p>SentryWard considers only well-synchronized kernels, although a correct kernel need not be well-synchronized. The kernel with separate announcements happens to be incorrect: when copy A lands first, the MMA may read <code>sB</code> before the second copy writes it. In practice, the restriction costs little: of the <span class="tbd">[N]</span> kernels in our benchmark, only one is not well-synchronized, and it is a bug as well.</p>
+<p>SentryWard considers only well-synchronized kernels, although a correct kernel need not be well-synchronized. The kernel with separate announcements happens to be incorrect: when copy A lands first, the MMA may read <code>sB</code> before the second copy writes it. In our benchmark, only one kernel is not well-synchronized, and it is a bug as well.</p>
 <p>The kernel with the missing wait, in contrast, passes the well-synchronization check, since its barriers count exactly as in the correct kernel. But without the epilogue&rsquo;s wait, its happens-before graph has no path from the MMA&rsquo;s execution to the epilogue&rsquo;s loads (see the &ldquo;Buggy kernel&rdquo; tab in Figure 5).</p>
 
 <h3 id="race-freedom">Race freedom and serialization</h3>
@@ -306,7 +304,7 @@ scale = exp(r.old_max - r.new_max)</pre>
 <p class="back-link"><a href="../../">&larr; Back to the project overview</a></p>
 </article>
 
-<footer>SentryWard &middot; <span class="tbd">[Authors]</span> &middot; <span class="tbd">[Affiliation]</span></footer>
+<footer>SentryWard &middot; <a href="https://github.com/gpu-verifier/sentryward">GitHub</a></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
