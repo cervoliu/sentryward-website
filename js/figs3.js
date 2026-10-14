@@ -104,33 +104,62 @@
 
   // ---------- Figure 14: kernel time after removing redundant synchronization ----------
   S.figs['sync-removal'] = function (host) {
-    // Reduction in kernel time (%) of each of the 44 reduced kernels on its verified input
-    // (examples/index.md); 0 is no measurable change.
-    var DATA = [4.1, 11.0, 13.4, 13.3, 8.2, 14.1, 0, 9.3, 6.7, 3.3, 11.0, 0, 10.2, 14.5, 2.7, 11.5,
-                6.0, 6.5, 5.2, 8.2, 12.7, 9.2, 11.6, 9.6, 0, 0, 5.9, 0, 13.5, 37.5, 12.5, 4.2,
-                -2.5, 3.9, 2.9, 15.9, 16.0, 0, 0, 2.5, 0, 5.1, 10.8, 6.9];
-    var X0 = 60, X1 = 730, LO = -5, HI = 40, MID = 92, BOT = 160, R = 5, MEDIAN = 6.8;
+    // Reduction in kernel time (%) on a B200 for the 44 kernels that were reduced at both the
+    // example inputs and larger inputs (examples/index.md, PR #303); 0 is no measurable change.
+    var SETS = [
+      { key: 'example', label: 'Example inputs', median: 7.5,
+        note: '48.6% of synchronization removed \u00b7 35 of 44 kernels faster',
+        data: [4.1, 11, 13.4, 13.3, 9.8, 14.1, 0, 9.3, 6.7, 3.3, 11, 0, 10.2, 14.5, 13.8, 2.7, 11.5,
+                6, 6.5, 5.2, 8.2, 12.7, 9.2, 11.6, 9.6, 0, 0, 5.9, 0, 13.5, 37.5, 12.5, 4.2, -2.5,
+                3.9, 2.9, 15.9, 16, 0, 0, 0, 5.1, 10.8, 6.9] },
+      { key: 'larger', label: 'Larger inputs', median: 3.0,
+        note: '42.4% of synchronization removed \u00b7 37 of 44 kernels faster',
+        data: [2.4, 4.7, 6.7, 6.3, 0, 5.2, 2.9, 3, 1.9, 1.6, 2.7, 0.4, 8.3, 1.1, 0.8, 2.8, 6.1, 0,
+                4, 2.8, 4.9, 5, 5.3, 4.1, 3.8, 1, 0, 3.4, 0, 2.2, 14.9, 3.5, 1.4, 0, 3.8, 2.7, 16,
+                16, 0.9, 0, 0, 4.6, 4.5, 4] }
+    ];
+    var X0 = 60, X1 = 730, LO = -5, HI = 40, MID = 98, BOT = 166, R = 5;
     function X(v) { return X0 + (v - LO) / (HI - LO) * (X1 - X0); }
+    var seg = S.div('seg', S.div('kswitch', host)), btns = {}, groups = {};
+    seg.setAttribute('role', 'group');
+    seg.setAttribute('aria-label', 'Input size');
     var stage = S.div('anim-stage', S.div('anim static', host));
-    var svg = S.el('svg', { viewBox: '0 0 760 210', role: 'img', 'aria-label': 'One dot per kernel on an axis of reduction in kernel time. Most kernels fall between 5 and 15 percent, eight show no change, one is slower, and the median is 6.8 percent.' }, stage);
+    var svg = S.el('svg', { viewBox: '0 0 760 216', role: 'img', 'aria-label': 'One dot per kernel on an axis of reduction in kernel time. At the example inputs, the median reduction is 7.5 percent; at larger inputs, 3.0 percent.' }, stage);
     svg.style.minWidth = '600px';
     [0, 10, 20, 30, 40].forEach(function (v) {
-      S.el('line', { x1: X(v), y1: 24, x2: X(v), y2: BOT, 'class': v === 0 ? 'sr-zero' : 'sr-grid' }, svg);
+      S.el('line', { x1: X(v), y1: 30, x2: X(v), y2: BOT, 'class': v === 0 ? 'sr-zero' : 'sr-grid' }, svg);
       S.text(svg, X(v), BOT + 14, v + '%', { fs: 11, cls: 'muted' });
     });
     S.text(svg, (X0 + X1) / 2, BOT + 36, 'reduction in kernel time', { fs: 12 });
-    S.el('line', { x1: X(MEDIAN), y1: 18, x2: X(MEDIAN), y2: BOT, 'class': 'sr-median' }, svg);
-    S.text(svg, X(MEDIAN) + 5, 14, 'median ' + MEDIAN + '%', { fs: 11, cls: 'hbtext', anchor: 'start' });
-    // A simple beeswarm: each dot takes the closest free height to the axis line.
-    var placed = [];
-    DATA.slice().sort(function (a, b) { return a - b; }).forEach(function (v) {
-      var x = X(v), dy = 0;
-      for (var k = 0; k < 40; k++) {
-        dy = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (2 * R + 1);
-        if (!placed.some(function (p) { return Math.hypot(p[0] - x, p[1] - dy) < 2 * R + 1; })) break;
-      }
-      placed.push([x, dy]);
-      S.el('circle', { cx: x.toFixed(1), cy: (MID + dy).toFixed(1), r: R, 'class': 'sr-dot' }, svg);
+    SETS.forEach(function (set) {
+      var g = S.el('g', null, svg), placed = [];
+      S.el('line', { x1: X(set.median), y1: 26, x2: X(set.median), y2: BOT, 'class': 'sr-median' }, g);
+      S.text(g, X(set.median) + 5, 20, 'median ' + set.median.toFixed(1) + '%', { fs: 11, cls: 'hbtext', anchor: 'start' });
+      S.text(g, X1, 20, set.note, { fs: 11, cls: 'muted', anchor: 'end' });
+      // A simple beeswarm: each dot takes the closest free height to the axis line.
+      set.data.slice().sort(function (a, b) { return a - b; }).forEach(function (v) {
+        var x = X(v), dy = 0;
+        for (var k = 0; k < 40; k++) {
+          dy = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * (2 * R + 1);
+          if (!placed.some(function (p) { return Math.hypot(p[0] - x, p[1] - dy) < 2 * R + 1; })) break;
+        }
+        placed.push([x, dy]);
+        S.el('circle', { cx: x.toFixed(1), cy: (MID + dy).toFixed(1), r: R, 'class': 'sr-dot' }, g);
+      });
+      groups[set.key] = g;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = set.label;
+      b.addEventListener('click', function () { select(set.key); });
+      seg.appendChild(b);
+      btns[set.key] = b;
     });
+    function select(key) {
+      Object.keys(groups).forEach(function (k) {
+        groups[k].style.display = k === key ? '' : 'none';
+        btns[k].setAttribute('aria-pressed', String(k === key));
+      });
+    }
+    select('example');
   };
 })();
