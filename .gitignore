@@ -3,3 +3,7 @@ Thumbs.db
 *.log
 .env
 .env.*
+
+# Snapshot importer and tests
+__pycache__/
+*.py[cod]

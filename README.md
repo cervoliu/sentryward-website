@@ -34,7 +34,71 @@ python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
 Open [the homepage](http://127.0.0.1:8765/), [the blog index](http://127.0.0.1:8765/blog/),
-or [the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized-gpu-kernels/).
+[the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized-gpu-kernels/),
+or [the verification database](http://127.0.0.1:8765/results/).
+
+## Verification database
+
+`/results/` presents a versioned snapshot of
+`wmdi/wasp_verification:docs/kernel-verification-results.json`. Search, library/result filters,
+compact result-group filters, sorting, pagination, and individual record links run entirely in the browser.
+The main table shows the verdict, removal counts, kernel timing, and analysis time. Open a kernel
+for its input configuration, individual synchronization, memory, and equivalence checks, and supporting evidence.
+The snapshot date, publishing revision, verifier workspace base, conditional analysis scopes,
+and incomplete checks remain visible. Summary counts are derived from the records and checked
+against the source counts. Reported findings are not presented as confirmed hardware failures.
+
+The source repository requires access, so visitors load the bundled snapshot, not the GitHub API.
+No access token is embedded in the site. To refresh it, authenticate the GitHub CLI with source
+repository access and run:
+
+```sh
+python3 scripts/update-verification-results.py
+node --test tests/*.test.mjs
+python3 -m unittest discover -s tests -p "test_*.py"
+```
+
+The updater resolves `main` to a commit, validates the downloaded JSON, and saves the original
+bytes plus provenance in `data/`. It also imports the synchronization-removal columns from
+`examples/index.md` at the same publishing revision into `sync-removal-results.json`. Use `--ref <commit>` for a specific source revision. Review and
+commit all four data files through a PR; merging publishes the updated snapshot. This is a dated
+snapshot, not a live feed. Preserve source follow-up notes and workspace caveats when updating.
+Input configurations are bundled in `kernel-input-configs.json`, keyed by the SHA-256 of their
+original UTF-8 contents. The browser loads this file only when opening a record, checks the
+selected input's hash, and displays launch dimensions, TMA tensor shapes, argument values,
+and expandable full JSON. Downloads retain the exact input bytes. These configurations belong
+to the verification snapshot, not necessarily the historical synchronization-removal study.
+
+The updater fetches inputs at the publishing revision and rejects hash mismatches before writing
+data. If the analyzed inputs include local changes, pass `--input-root /path/to/wasp_verification`
+to read them from that workspace instead; every input must still match its recorded hash.
+File links point to the publishing revision and may differ from the analyzed workspace.
+
+Preview checks: filter by library and verdict, search a diagnostic, sort by runtime, move between
+pages, open a conditional record, close it with Escape, and reload its permalink. Verify the
+empty state and mobile table scrolling. The page shows an error and keeps the JSON download
+available if data loading or validation fails.
+
+### Synchronization removal and kernel performance
+
+The database joins historical synchronization experiments to verification records by exact
+kernel identifier. The **Recorded inputs / Larger-input study** selector switches both the
+removal count and B200 timing columns. Use **Only kernels with removal counts**, or sort by
+removable sites and runtime reduction. Details preserve full input-scope notes and experiment
+issue links. Summary totals describe the filtered rows; counts and timings may cover different
+kernel sets.
+
+Removal counts refer to candidate sites removable together under the experiment's configuration,
+not every dynamic synchronization instruction or every possible input. The study is separate from
+the latest verification run. Some larger-input entries are explicitly marked as original-shape
+rechecks. Unknown values, unrun experiments, measured zero, and no measurable performance change
+remain distinct. Runtime percentages use the source-reported values, not ratios inferred from
+rounded timings. Runtime reductions are displayed as **faster**, and increases as **slower**. These percentages
+describe changes in kernel runtime relative to the original, not throughput speedups.
+
+`scripts/sync_removal.py` rejects changed table formats, mismatched candidates, and unknown kernel
+identifiers rather than silently dropping measurements. The UI keeps verification results usable
+if the optional study file cannot load. Source study provenance is stored with the imported data.
 
 ## Files
 
@@ -43,6 +107,13 @@ or [the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized
 - `blog/verifying-warp-specialized-gpu-kernels/index.html`: technical article.
 - `css/style.css`: article and figure styles.
 - `css/site.css`: shared navigation, homepage, and blog layouts.
+- `results/index.html`, `css/results.css`: verification database page and responsive layout.
+- `js/results.mjs`, `js/results-model.mjs`: database UI, filtering, and data validation.
+- `data/`: verification snapshot, exact input configurations, provenance, and synchronization-removal study.
+- `js/kernel-inputs.mjs`, `scripts/kernel_inputs.py`: input hash verification and import.
+- `js/sync-removal.mjs`, `scripts/sync_removal.py`: study validation, display semantics, and import.
+- `scripts/update-verification-results.py`: authenticated, validated snapshot refresh.
+- `tests/results-model.test.mjs`: snapshot integrity and query behavior checks.
 - `js/anim.js`: figure helpers and animation runtime.
 - `js/figs1.js`, `js/figs2.js`, `js/figs3.js`: interactive figures.
 
