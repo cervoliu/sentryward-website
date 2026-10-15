@@ -3,7 +3,7 @@ import { VERDICTS, libraryOf, displayName, validateSnapshot, summarize, filterRo
 import { SCENARIOS, validateStudy, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
 
 const $ = id => document.getElementById(id);
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 200;
 const repository = 'https://github.com/wmdi/wasp_verification';
 let snapshot, source, stats, rows, study, studyAvailable = false, state, openedKernel = null;
 const number = value => Number.isFinite(value) ? value.toLocaleString('en-US') : 'Not recorded';
