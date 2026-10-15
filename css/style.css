@@ -72,6 +72,16 @@ pre {
 pre .c { color: #6a737d; }
 pre .bad { color: var(--bad); font-weight: 700; }
 pre del { text-decoration-thickness: 1.5px; }
+/* Operations in code blocks and the window that explains them (js/op-tips.js). */
+pre .op { text-decoration: underline dotted #94a3b8; text-underline-offset: 3px; cursor: help; border-radius: 3px; }
+pre .op:hover, pre .op.on { background: var(--step-bg); }
+pre .op:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.op-tip {
+  position: absolute; z-index: 20; box-sizing: border-box; max-width: min(300px, calc(100vw - 24px));
+  padding: 8px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  font: 14px/1.5 Inter, system-ui, sans-serif; color: var(--text);
+}
 /* Circled step numbers, as \step in the paper. */
 .sn {
   display: inline-grid; place-items: center;

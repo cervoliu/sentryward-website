@@ -44,7 +44,7 @@
 
 <h2 id="inside-a-kernel">Inside a warp-specialized kernel</h2>
 <p>Kernels whose warps take different roles are called <i>warp-specialized</i>. Much of their work is asynchronous: an instruction only starts a copy or a multiplication, and a dedicated unit, the Tensor Memory Accelerator (TMA) or the tensor core, completes it later. A block-wide barrier such as <code>__syncthreads()</code> coordinates threads, but does not by itself wait for these asynchronous operations to complete. Instead, the roles signal each other through <i>mbarriers</i>, barrier objects in shared memory that count the arrivals and bytes they still expect. When both counts reach zero, the barrier&rsquo;s current phase completes, and the threads waiting for it proceed.</p>
-<p>Our running example is a small warp-specialized kernel on a Blackwell GPU. It computes one \(128 \times N\) tile of \(C = AB\) from a \(128 \times K\) tile of \(A\) and a \(K \times N\) tile of \(B\). In practice, \(K\) is large, and the kernel loops over blocks of \(K\), reusing its shared-memory buffers; for simplicity, we show a single iteration. The kernel has 128 threads in three roles: thread 0 is the producer, thread 32 the MMA issuer, and all 128 threads form the epilogue. Two mbarriers coordinate them: <code>full</code> signals that both input tiles are in shared memory, and <code>mma_done</code> that the product is in tensor memory. Each of the two input tiles is 16 KB.</p>
+<p>Our running example is a small warp-specialized kernel on a Blackwell GPU. It computes one \(128 \times N\) tile of \(C = AB\) from a \(128 \times K\) tile of \(A\) and a \(K \times N\) tile of \(B\). In practice, \(K\) is large, and the kernel loops over blocks of \(K\), reusing its shared-memory buffers; for simplicity, we show a single iteration. The kernel has 128 threads in three roles: thread 0 is the producer, thread 32 the MMA issuer, and all 128 threads form the epilogue. Two mbarriers coordinate them: <code>full</code> signals that both input tiles are in shared memory, and <code>mma_done</code> that the product is in tensor memory. Each of the two input tiles is 16 KB. Hover over or tap an operation in the code to see what it does.</p>
 <pre>// 128 threads (4 warps), thread index t.
 if t == 0:
     init(full, 1)
@@ -322,5 +322,6 @@ scale = exp(r.old_max - r.new_max)</pre>
 <script src="../../js/figs1.js"></script>
 <script src="../../js/figs2.js"></script>
 <script src="../../js/figs3.js"></script>
+<script src="../../js/op-tips.js"></script>
 </body>
 </html>
