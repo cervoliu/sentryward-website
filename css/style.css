@@ -196,10 +196,6 @@ table.booktabs tr.ph td { background: #ebebff; }
 table.booktabs tr.bad td { background: #ffebeb; color: var(--bad); }
 table.booktabs tr.good td { background: #e6f5e8; color: var(--good); }
 
-/* Evaluation table: retain row headers without repeating the column-heading rule. */
-table.booktabs.results-table { margin-bottom: 22px; }
-table.booktabs.results-table tbody th { border-bottom: 0; font-weight: 400; }
-
 footer { border-top: 1px solid var(--rule); color: var(--muted); font-size: 14px; padding: 26px 24px 40px; text-align: center; }
 
 @media (max-width: 760px) {
