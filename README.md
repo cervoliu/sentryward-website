@@ -34,7 +34,38 @@ python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
 Open [the homepage](http://127.0.0.1:8765/), [the blog index](http://127.0.0.1:8765/blog/),
-or [the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized-gpu-kernels/).
+[the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized-gpu-kernels/),
+or [the verification database](http://127.0.0.1:8765/results/).
+
+## Verification database
+
+`/results/` presents a versioned snapshot of
+`wmdi/wasp_verification:docs/kernel-verification-results.json`. Search, library/result filters,
+summary groups, sorting, pagination, and individual record links run entirely in the browser.
+The snapshot date, publishing revision, verifier workspace base, conditional analysis scopes,
+and incomplete checks remain visible. Summary counts are derived from the records and checked
+against the source counts. Reported findings are not presented as confirmed hardware failures.
+
+The source repository requires access, so visitors load the bundled snapshot, not the GitHub API.
+No access token is embedded in the site. To refresh it, authenticate the GitHub CLI with source
+repository access and run:
+
+```sh
+python3 scripts/update-verification-results.py
+node --test tests/results-model.test.mjs
+```
+
+The updater resolves `main` to a commit, validates the downloaded JSON, and saves the original
+bytes plus provenance in `data/`. Use `--ref <commit>` for a specific source revision. Review and
+commit both data files through a PR; merging publishes the updated snapshot. This is a dated
+snapshot, not a live feed. Preserve source follow-up notes and workspace caveats when updating.
+File links point to the publishing revision, while recorded SHA-256 hashes identify analyzed
+files; local source changes mean those may differ.
+
+Preview checks: filter by library and verdict, search a diagnostic, sort by runtime, move between
+pages, open a conditional record, close it with Escape, and reload its permalink. Verify the
+empty state and mobile table scrolling. The page shows an error and keeps the JSON download
+available if data loading or validation fails.
 
 ## Files
 
@@ -43,6 +74,11 @@ or [the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized
 - `blog/verifying-warp-specialized-gpu-kernels/index.html`: technical article.
 - `css/style.css`: article and figure styles.
 - `css/site.css`: shared navigation, homepage, and blog layouts.
+- `results/index.html`, `css/results.css`: verification database page and responsive layout.
+- `js/results.mjs`, `js/results-model.mjs`: database UI, filtering, and data validation.
+- `data/`: published verification snapshot and source provenance.
+- `scripts/update-verification-results.py`: authenticated, validated snapshot refresh.
+- `tests/results-model.test.mjs`: snapshot integrity and query behavior checks.
 - `js/anim.js`: figure helpers and animation runtime.
 - `js/figs1.js`, `js/figs2.js`, `js/figs3.js`: interactive figures.
 
