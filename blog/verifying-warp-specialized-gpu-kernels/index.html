@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SentryWard: Formal Verification of Warp-Specialized GPU Kernels</title>
-<meta name="description" content="SentryWard proves that a warp-specialized GPU kernel&rsquo;s barriers behave the same way in every schedule, that no schedule has a data race, and that the kernel computes the same function as a PyTorch reference.">
+<meta name="description" content="A technical account of SentryWard: synchronization and race analysis for warp-specialized GPU kernels, reference equivalence in real arithmetic, and synchronization-removal results under explicit modeling assumptions.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
@@ -29,22 +29,33 @@
 <nav class="post-toc" aria-label="In this article">
   <p>In this article</p>
   <ol>
-    <li><a href="#inside-a-kernel">Inside a warp-specialized kernel</a></li>
-    <li><a href="#a-missing-wait">A bug that depends on the schedule</a></li>
-    <li><a href="#how-it-works">How SentryWard works</a></li>
-    <li><a href="#results">Results</a></li>
-    <li><a href="#future-directions">Future directions</a></li>
+    <li><a href="#verification-scope">Verification scope and assumptions</a></li>
+    <li><a href="#inside-a-kernel">Execution model and running example</a></li>
+    <li><a href="#a-missing-wait">A schedule-dependent data race</a></li>
+    <li><a href="#how-it-works">Verification method</a></li>
+    <li><a href="#results">Evaluation</a></li>
+    <li><a href="#future-directions">Limitations and future work</a></li>
   </ol>
 </nav>
 
-<p>For most of CUDA&rsquo;s history, a kernel was a data-parallel program. Every thread ran the same code on its own slice of the data, and block-wide barriers kept the threads in step: load a tile, wait, multiply, wait, load the next.</p>
-<p>Hopper and Blackwell broke this rhythm. Their tensor cores are so fast that a kernel keeps them busy only if it loads the next tile while multiplying the current one. So the fastest kernels split each thread block into roles that run at the same time, one loading, one multiplying, one writing results. The roles hand off work through asynchronous copies and barriers that count bytes.</p>
-<p>Such a kernel is a concurrent program, and it fails like one. A missing wait does not crash anything. In some schedules, it lets threads read the result of a multiplication before the tensor core has written it, and the output is silently wrong; in others, the same kernel computes the right result. The computation itself can also go wrong, for example through an off-by-one index or a tile read in the wrong layout.</p>
-<p>SentryWard is a verifier for these kernels. Given a kernel&rsquo;s PTX, a launch configuration, and a PyTorch reference, it proves that <b>the kernel&rsquo;s barriers behave the same way in every schedule, that no schedule has a data race</b>, and that <b>the kernel computes the same function as the reference</b>. The same analysis also rules out deadlocks and uses of freed resources. SentryWard found issues in popular kernel libraries; we describe three of them below. Removing synchronization that it shows to be redundant cuts kernel time by a median of 7.5% at our example inputs and 3.0% at larger ones. In this post, we look at how warp-specialized kernels synchronize, what goes wrong, and how SentryWard checks them.</p>
+<p>Warp-specialized GPU kernels overlap data movement, matrix multiplication, and output processing by assigning different roles to warps within a thread block. On Hopper and Blackwell GPUs, these roles interact with asynchronous copy engines and tensor cores. An instruction can return before the operation it initiates has completed, so program order alone does not establish when operands or results are ready.</p>
+<p>Correctness therefore requires both a concurrency argument and a computation argument. Synchronization must order conflicting memory accesses and resource lifetimes; the resulting computation must implement the intended tensor function. A missing completion wait can violate the first requirement even when numerical tests pass, while an indexing or layout error can violate the second in a race-free kernel.</p>
+<p>SentryWard is a static verifier for NVIDIA PTX that addresses these requirements in three stages: certification of barrier-phase assignments, race and resource-lifetime analysis, and equivalence checking against a PyTorch reference. This article develops the method through a Blackwell matrix-multiplication example, examines findings in three kernel libraries, and reports synchronization-removal results for 44 kernels at two input sizes.</p>
 
-<h2 id="inside-a-kernel">Inside a warp-specialized kernel</h2>
-<p>Kernels whose warps take different roles are called <i>warp-specialized</i>. Much of their work is asynchronous: an instruction only starts a copy or a multiplication, and a dedicated unit, the Tensor Memory Accelerator (TMA) or the tensor core, completes it later. A block-wide barrier such as <code>__syncthreads()</code> cannot coordinate such a kernel: it would force the roles back into lockstep, and it does not wait for asynchronous operations. Instead, the roles signal each other through <i>mbarriers</i>, barrier objects in shared memory that count the arrivals and bytes they still expect. When both counts reach zero, the barrier&rsquo;s current phase completes, and the threads waiting for it proceed.</p>
-<p>Our running example is a small warp-specialized kernel on a Blackwell GPU. It computes one \(128 \times N\) tile of \(C = AB\) from a \(128 \times K\) tile of \(A\) and a \(K \times N\) tile of \(B\). In practice, \(K\) is large, and the kernel loops over blocks of \(K\), reusing its shared-memory buffers; for simplicity, we show a single iteration. The kernel has 128 threads in three roles: thread 0 is the producer, thread 32 the MMA issuer, and all 128 threads form the epilogue. Two mbarriers coordinate them: <code>full</code> signals that both input tiles are in shared memory, and <code>mma_done</code> that the product is in tensor memory. Each of the two input tiles is 16 KB.</p>
+<h2 id="verification-scope">Verification scope and assumptions</h2>
+<p>A verification instance specifies the kernel&rsquo;s PTX, input metadata and parameter values, a launch configuration, and any configured modeling assumptions. A PyTorch reference and a binding between reference and kernel inputs and outputs are needed for equivalence checking. The guarantees below apply to that instance and to executions admitted by the selected model.</p>
+<ul>
+  <li><b>Fixed shapes and launch configuration.</b> A proof does not automatically extend to other problem sizes, thread-block dimensions, or pipeline configurations.</li>
+  <li><b>Static control flow.</b> The analysis presented here requires branch outcomes and loop bounds to be determined without reading tensor data. Explicit assumptions that select data-dependent paths further restrict the scope of a result.</li>
+  <li><b>Immediate memory visibility.</b> The model separates asynchronous issue from execution and completion, but assumes that a memory effect becomes visible when it executes. It does not model fences or the full PTX weak-memory semantics.</li>
+  <li><b>Real-arithmetic equivalence.</b> Floating-point values are interpreted as real numbers. Equivalence establishes equality of the modeled functions, not bitwise equality under floating-point rounding.</li>
+</ul>
+<p>These are conditional guarantees: their applicability depends on the supplied configuration, the configured assumptions, and the accuracy of the hardware model. An unsupported operation, an exhausted analysis budget, or a failed equivalence proof is not a successful verification result. In particular, failure to prove equivalence is not itself a counterexample.</p>
+
+<h2 id="inside-a-kernel">Execution model and running example</h2>
+<p>In a <i>warp-specialized</i> kernel, different warps perform different roles. The Tensor Memory Accelerator (TMA) transfers input tiles, while tensor cores execute matrix multiply-accumulate (MMA) operations. Both operate asynchronously. A block-wide barrier such as <code>__syncthreads()</code> coordinates participating threads, but is not by itself a completion wait for these TMA and <code>tcgen05</code> operations. The roles instead communicate through <i>mbarriers</i>: shared-memory objects whose phases track pending arrivals and outstanding transaction bytes. A phase completes when both counts reach zero. NVIDIA&rsquo;s <a href="https://docs.nvidia.com/cuda/parallel-thread-execution/index.html#parallel-synchronization-and-communication-instructions-mbarrier">PTX specification</a> describes these barrier operations.</p>
+<p>The running example computes one \(128 \times N\) tile of \(C = AB\) from a \(128 \times K\) tile of \(A\) and a \(K \times N\) tile of \(B\). A full kernel iterates over tiles of the reduction dimension and reuses its shared-memory buffers; the example shows one iteration. There are 128 threads: thread 0 issues the input copies, thread 32 issues the MMA, and all 128 threads participate in the epilogue. The barrier <code>full</code> signals that both input tiles are available in shared memory; <code>mma_done</code> signals that the accumulator is available in tensor memory. For the illustrated transfers, each input tile occupies 16 KB.</p>
+<p>The following pseudocode isolates the synchronization dependencies. It abstracts allocation, descriptors, physical data layouts, and instruction-specific participation requirements; it is not executable PTX.</p>
 <pre>// 128 threads (4 warps), thread index t.
 if t == 0:
     init(full, 1)
@@ -71,27 +82,27 @@ st.global(C[t, :] &larr; r)                   <span class="sn">8</span></pre>
   <figcaption>Figure 1: The running example. Threads only start the copies and the multiplication, and the TMA and the tensor core complete them asynchronously. The two barriers keep every step from using data before it is ready. Step numbers match the code.</figcaption>
 </figure>
 
-<p>The kernel is correct only because of the order its barriers enforce: step 4 keeps the multiplication from reading <code>sA</code> and <code>sB</code> too early, and step 7 keeps the threads from loading the accumulator too early.</p>
+<p>The relevant producer-consumer dependencies are explicit: step 4 orders the MMA after the input copies, and step 7 orders the epilogue&rsquo;s tensor-memory loads after the MMA. The subsequent <code>tcgen05.wait::ld()</code> waits for those loads before their register results are stored to global memory.</p>
 
-<h2 id="a-missing-wait">A bug that depends on the schedule</h2>
-<p>Now suppose the epilogue forgets its wait, step 7:</p>
+<h2 id="a-missing-wait">A schedule-dependent data race</h2>
+<p>Consider a variant that omits the epilogue&rsquo;s wait at step 7:</p>
 <pre><del class="bad">wait(mma_done, 0)</del>                    <span class="c">// epilogue (buggy)</span>
 r = tcgen05.ld(acc[t, :])
 tcgen05.wait::ld()
 st.global(C[t, :] &larr; r)</pre>
-<p>Both barriers still count exactly as before: the copies complete phase 0 of <code>full</code>, and the commit&rsquo;s arrival completes phase 0 of <code>mma_done</code>. But nothing orders the epilogue&rsquo;s loads after the multiplication any more. Whether the epilogue reads <code>acc</code> before or after the tensor core writes it depends on the schedule:</p>
+<p>The barrier updates are unchanged: the input copies complete phase 0 of <code>full</code>, and the MMA commit supplies the arrival that completes phase 0 of <code>mma_done</code>. However, no dependency orders the epilogue&rsquo;s loads after the MMA. The two schedules in Figure 2 differ in whether the accumulator is read before or after the tensor core writes it.</p>
 
 <figure class="wide">
   <div data-fig="schedules"></div>
   <figcaption>Figure 2: Two executions of the buggy kernel, listing events in execution order with the state of barrier <code>mma_done</code> (pending arrivals, pending bytes) after each update. The barrier behaves the same way in both; they differ only in whether the epilogue reads <code>acc</code> before or after the tensor core writes it.</figcaption>
 </figure>
 
-<p>In this small kernel, the missing wait is easy to spot. In real kernels, with many more roles, pipeline stages, and asynchronous operations, it is not. The results below include a closely related missing wait in CUTLASS.</p>
+<p>The missing dependency is apparent in this example. In a pipelined implementation, the corresponding producer and consumer may be separated by several roles, stages, and asynchronous operations. The CUTLASS case study below examines a related publication of data before an asynchronous store is known to have completed.</p>
 
-<p>A test observes only the schedules that happen to occur, and so does a dynamic race detector such as Compute Sanitizer. Enumerating schedules is infeasible, even for this kernel with 128 threads and several asynchronous operations. <b>We need an argument that covers every schedule without enumerating them.</b></p>
+<p>Numerical tests and dynamic race detection examine executed paths and schedules. They provide empirical evidence, but do not establish that every admitted schedule is safe. SentryWard instead seeks a static ordering argument that covers those schedules without enumerating them.</p>
 
-<h2 id="how-it-works">SentryWard</h2>
-<p>SentryWard checks these three properties in turn: that the barriers behave the same way in every schedule, that no schedule has a data race, and that the kernel computes the same function as the reference. The first property is <i>well-synchronization</i>, which <a href="https://doi.org/10.1145/2737924.2737962">WEFT</a> introduced for named barriers and SentryWard extends to mbarriers. Each check relies on the guarantee of the one before it, and every guarantee covers all schedules of the launch. When a check fails, SentryWard reports a <i>witness</i>, such as the two unordered accesses of a race.</p>
+<h2 id="how-it-works">Verification method</h2>
+<p>The analysis has three proof obligations. First, each barrier update and wait must have a schedule-independent phase assignment. Second, conflicting memory accesses and resource uses must satisfy the required ordering constraints. Third, when a reference is supplied, the modeled outputs must equal the reference outputs in real arithmetic. The first property is <i>well-synchronization</i>, introduced for named barriers by <a href="https://doi.org/10.1145/2737924.2737962">WEFT</a> and extended here to mbarriers. Each stage relies on the preceding guarantees. Diagnostics identify failed obligations, such as a pair of potentially conflicting accesses without a proved ordering; incomplete analyses are reported separately.</p>
 
 <figure class="wide">
   <div data-fig="pipeline"></div>
@@ -99,7 +110,7 @@ st.global(C[t, :] &larr; r)</pre>
 </figure>
 
 <h3 id="program-representation">Program representation</h3>
-<p>SentryWard analyzes kernels with <b>static control flow</b>: their branches and loop bounds may depend on the launch configuration, but not on the data. It first specializes the kernel for the launch configuration: it resolves branches and unrolls loops, so that each thread executes a finite sequence of instructions. It then records the program in two views: the <i>event view</i>, a graph of events, and the <i>value view</i>, which records what each thread loads, stores, and computes. An instruction that takes effect at once, such as a store or a barrier update, is a single event. An asynchronous instruction starts with an issue event, after which the hardware performs the rest. Program-order edges record the order that each thread&rsquo;s code imposes.</p>
+<p>SentryWard first specializes the PTX for the supplied configuration. For the static-control fragment considered here, it resolves branches and unrolls control-flow loops to obtain finite instruction sequences. It then constructs two complementary representations: an <i>event view</i> of ordering and memory effects, and a <i>value view</i> of the expressions loaded, stored, and computed. Immediate effects are represented by events at the instruction; asynchronous operations have distinct issue and execution events. Program-order edges capture the dependencies imposed by each thread&rsquo;s instruction sequence.</p>
 
 <figure class="wide">
   <div data-fig="event-graph"></div>
@@ -107,41 +118,43 @@ st.global(C[t, :] &larr; r)</pre>
 </figure>
 
 <h3 id="synchronization-analysis">Synchronization analysis</h3>
-<p>Program order covers each thread on its own; across threads, the order comes from barriers. An mbarrier goes through a sequence of <i>phases</i>. During each phase, it counts pending arrivals and pending bytes: <code>arrive</code> removes an arrival, <code>expect_tx</code> announces bytes, and a TMA copy subtracts its bytes when its data lands. When both counters reach zero, the phase completes, and the next phase starts with the counters reset. A thread waits for a phase with <code>wait(bar, parity)</code>, which names the phase by its parity.</p>
-<p>Which updates does a wait observe? Those of the phase it waits for. But the schedule can change which phase an update joins. In one schedule, an update happens before phase 0 completes, so it joins phase 0. In another schedule, phase 0 completes first, so the same update joins phase 1. SentryWard focuses on kernels in which the schedule never changes what a wait observes. Formally, it requires the kernel to be well-synchronized: <b>every barrier update and every wait belongs to the same phase in every execution</b>. This restriction is reasonable because programmers already intend a fixed phase for every update and every wait. Pipelined kernels, for instance, compute the parity of each wait from the loop counter.</p>
-<p>Following WEFT, SentryWard first simulates one trace of the kernel, along any schedule that completes, and records the phase of every barrier update and every wait. From this trace it builds a <i>candidate graph</i> with a completion vertex for each phase. It then certifies that every schedule agrees with the trace. WEFT does this by checking that every update comes after the previous phase of its barrier completes. If certification succeeds, the candidate graph is the kernel&rsquo;s <i>happens-before graph</i>: its orderings hold in every execution, and no execution deadlocks.</p>
+<p>Program order provides intra-thread constraints; barriers provide inter-thread dependencies. An mbarrier advances through a sequence of <i>phases</i>. Within a phase, <code>arrive</code> reduces the pending-arrival count, <code>expect_tx</code> increases the expected transaction count, and completion of a tracked TMA transfer reduces that count by the transferred bytes. When both counts reach zero, the phase completes and the counters are reset for the next phase. The shorthand <code>wait(bar, parity)</code> represents a wait for completion of a phase identified by its parity.</p>
+<p>A wait observes completion of a particular phase, but the schedule may affect which updates contribute to that phase. An update executed before phase 0 completes contributes to phase 0; the same update executed after completion contributes to phase 1. Well-synchronization requires that <b>every barrier update and wait be assigned to the same phase in every admitted execution</b>. This is a verification restriction rather than a necessary condition for every correct concurrent program. It matches the intended phase discipline of many pipelined kernels, in which wait parity is derived from the loop iteration.</p>
+<p>Following WEFT, SentryWard constructs a candidate phase assignment from one terminating trace. It records the phase of each update and wait, then builds a <i>candidate graph</i> with a completion vertex for each phase. The trace supplies the candidate; it is not itself a proof about other schedules. Certification establishes that all admitted schedules respect the assignment. For named barriers, WEFT checks that an update is ordered after completion of the preceding phase. Successful certification yields a <i>happens-before graph</i> whose ordering constraints hold across executions, and establishes deadlock freedom under the model.</p>
 
 <figure class="wide">
   <div data-fig="hb-graph"></div>
   <figcaption>Figure 5: The candidate graphs of the correct and the buggy kernel; the switch selects one. Each adds a completion vertex for each phase and its synchronization edges (blue) to the kernel&rsquo;s event graph (Figure 4), whose program-order edges are drawn in gray. Certification accepts both, so they are also the happens-before graphs. The thick path from the MMA&rsquo;s execution reaches thread \(t\)&rsquo;s read of the accumulator only in the correct kernel; in the buggy kernel, these two events (red) are unordered.</figcaption>
 </figure>
 
-<p>The hard part is the byte counter, for which WEFT&rsquo;s check is not enough. A named barrier counts only arrivals, so a phase cannot complete before its last arrival. Pending bytes, however, go up as well as down, so a phase can reach (0, 0) before all of its updates have happened. It then completes early: the threads waiting for it proceed without the remaining updates, which join the next phase instead. To see this, consider a different mistake from the one above: the producer announces each tile&rsquo;s 16 KB separately, just before starting its copy.</p>
+<p>The transaction-byte counter introduces an additional obligation. A named barrier counts only arrivals, so a phase cannot complete before its final arrival. Transaction counts can both increase and decrease. Consequently, a phase can reach zero pending arrivals and zero pending bytes before all updates assigned to it in the candidate trace have executed. Remaining updates then contribute to a later phase. For example, consider a producer that announces the two 16 KB transfers separately:</p>
 <pre>if t == 0:                           <span class="c">// producer (another bug)</span>
     <span class="bad">arrive.expect_tx(full, 16 KB)</span>
     tma_load(sA &larr; A, full)
     <span class="bad">expect_tx(full, 16 KB)</span>
     tma_load(sB &larr; B, full)</pre>
-<p>If copy A lands before the second announcement, phase 0 completes early, and the second announcement joins phase 1. Unlike the missing wait, this kernel is not well-synchronized: the phase that the second announcement joins depends on the schedule. To catch such kernels, <b>SentryWard checks that no phase can complete early</b>. It looks for updates that can happen before the rest of their phase and already bring both counters to zero, like the first announcement and copy A here.</p>
+<p>If copy A completes before the second announcement, phase 0 completes and the second announcement contributes to phase 1. This differs from the missing-wait example: the candidate phase assignment itself is schedule-dependent. SentryWard therefore checks whether a dependency-respecting, proper subset of a phase&rsquo;s updates can bring both counters to zero. Such a subset witnesses premature completion; here it consists of the first announcement and completion of copy A.</p>
 
 <figure class="wide">
   <div data-fig="phase-check"></div>
   <figcaption>Figure 6: Phase 0 of <code>full</code>, restricted to its updates; arrows show their order. With separate announcements (a), the two red updates can complete the phase early. In the correct kernel (b), only all three together can complete it.</figcaption>
 </figure>
 
-<p>SentryWard considers only well-synchronized kernels, although a correct kernel need not be well-synchronized. The kernel with separate announcements happens to be incorrect: when copy A lands first, the MMA may read <code>sB</code> before the second copy writes it. In our benchmark, only one kernel is not well-synchronized, and it is a bug as well.</p>
-<p>The kernel with the missing wait, in contrast, passes the well-synchronization check, since its barriers count exactly as in the correct kernel. But without the epilogue&rsquo;s wait, its happens-before graph has no path from the MMA&rsquo;s execution to the epilogue&rsquo;s loads (see the &ldquo;Buggy kernel&rdquo; tab in Figure 5).</p>
+<p>The separate-announcement variant is both not well-synchronized and unsafe under the model: if copy A completes first, the MMA can read <code>sB</code> before copy B writes it. In general, however, a failed well-synchronization check identifies a violation of the verifier&rsquo;s phase discipline, not necessarily an incorrect output.</p>
+<p>The missing-wait variant passes phase certification because its barrier updates retain their original phase assignments. It fails the next obligation: its happens-before graph contains no path from MMA execution to the epilogue&rsquo;s loads (Figure 5). This separates phase consistency from race freedom.</p>
 
 <h3 id="race-freedom">Race freedom and serialization</h3>
-<p>With the happens-before graph, checking races becomes a question about paths. Two accesses conflict if their footprints may overlap and at least one of them writes, and SentryWard requires <b>every conflicting pair to be ordered</b>. Footprints follow exact layouts, including swizzled shared-memory tiles, and an SMT solver decides overlap when addresses are symbolic.</p>
+<p>Race analysis checks reachability in the certified happens-before graph. Two memory accesses conflict when their byte footprints may overlap and at least one is a write. For each pair \((a,b)\) treated as conflicting by the selected model, the required condition is</p>
+<div class="eq">\[a \prec_{\mathrm{HB}} b \quad \lor \quad b \prec_{\mathrm{HB}} a.\]</div>
+<p>Access footprints account for the physical layout, including swizzled shared-memory tiles. When addresses are symbolic, an SMT solver is used to reason about overlap. An unordered conflicting pair is reported as a race candidate; an unresolved query cannot establish race freedom.</p>
 
 <figure class="wide">
   <div data-fig="views"></div>
   <figcaption>Figure 7: The event view (top) and the value view (bottom) of the MMA and one epilogue thread \(t\); gray boxes access memory. The store to <code>acc</code> and the load of row \(t\) are ordered in the correct kernel but race in the buggy kernel.</figcaption>
 </figure>
 
-<p>In the buggy kernel, nothing orders the MMA&rsquo;s store to <code>acc</code> before the epilogue&rsquo;s loads, so SentryWard reports a race, with the two accesses as its witness. Uses after free are checked the same way: every use of a resource, such as tensor memory, must be ordered before the resource is freed.</p>
-<p><b>A kernel that passes these checks behaves like a sequential program.</b> On a given input, every execution has the same effect as running its events one at a time, in any order that the happens-before graph allows: every read and every write accesses the same addresses with the same values, and the final memory is the same.</p>
+<p>In the missing-wait variant, MMA execution and the epilogue&rsquo;s accumulator loads are unordered, so the report identifies those accesses as the race witness. Resource-lifetime checks use the same ordering machinery: a use of tensor memory, for example, must precede its deallocation.</p>
+<p><b>The certified ordering permits sequential reasoning about the modeled computation.</b> For an input within the verified domain, the remaining analysis can choose a serialization consistent with the happens-before graph. Under the checked ordering and modeling assumptions, this preserves the memory effects relevant to the outputs across admitted concurrent executions.</p>
 
 <h3 id="compact-representation">Compact representation</h3>
 <p>An explicit per-thread, per-scalar representation does not scale: a block has hundreds of threads, and a single \(128 \times 256\) output tile with \(K = 4096\) involves about \(1.3 \times 10^8\) multiply-accumulates. <b>Most of this size comes from repetition.</b> SentryWard therefore represents each family of repeated threads, data elements, or reduction steps by a single indexed template, and analyzes the templates directly. A thread template covers a group of threads that have taken the same branches.</p>
@@ -158,7 +171,7 @@ st.global(C[t, :] &larr; r)</pre>
 <p>SentryWard builds Folds from MMA instructions and from repeated updates in the code; memory elimination and the expression check then work on them directly, without unrolling them.</p>
 
 <h3 id="equivalence-checking">Equivalence checking</h3>
-<p>A kernel can be well-synchronized and race-free and still compute the wrong thing: an off-by-one index, a tile read in the wrong layout, a missing scale factor. Since a race-free kernel behaves like a sequential program, SentryWard analyzes its computation on a single <i>serialization</i>. First, <i>memory elimination</i> turns the serialized program into pure expressions over the inputs; then, an <i>expression check</i> proves that these expressions equal the reference&rsquo;s.</p>
+<p>Well-synchronization and race freedom do not establish functional correctness: an indexing error, an incorrect layout, or a missing scale factor can remain. Once concurrency checks justify serialization, SentryWard applies <i>memory elimination</i> to obtain expressions over the inputs, then checks those expressions against the PyTorch reference.</p>
 
 <h4>Memory elimination</h4>
 <p>Memory elimination follows the serialization and keeps a memory state: the expression last stored at each address. Each store updates the state at its address, and each load is replaced by the expression that the state holds at its address, or by an input if nothing was stored there. The buffers in between, here <code>sA</code>, <code>sB</code>, and <code>acc</code>, drop out, and each output element becomes an expression built only from the inputs.</p>
@@ -225,15 +238,15 @@ st.global(C[t, :] &larr; r)</pre>
   <figcaption>Figure 10: Proving an optimized attention kernel equal to its reference. Top: the values that the reference computes (blue) and those that the kernel computes (purple). Bottom: the equalities that SentryWard proves. Each step uses the ones before it; from step 2 on, for example, \(\tilde{s}_j\) is replaced by \(s_j\).</figcaption>
 </figure>
 
-<p>In each step, SentryWard writes a part of the kernel&rsquo;s expression as \(c \cdot \sum_{k \in S} t(k) + r\): a common factor \(c\) times terms \(t(k)\) of a reference sum, plus a rest \(r\). If \(S\) covers every index exactly once, the part equals \(c\) times the reference sum, and later steps use it as a known value. If the merge forgot to rescale one block, the two blocks would have different factors, and no proof would be found. SentryWard checks coverage on a compact representation of index sets (their generating functions), without listing the indices, so it also handles large and strided index ranges. SentryWard compares parts without reductions by canonicalizing both sides into <a href="https://doi.org/10.4230/LIPIcs.ITCS.2026.95">exponential polynomials</a>, and handles operations such as square roots separately.</p>
-<p>Figure 10 is simplified: it merges just two blocks, while real kernels merge many blocks in a loop. SentryWard proves such loops correct by induction, with an invariant that relates the loop&rsquo;s state to the reference. Its support for induction is limited: it relies on predefined invariants for a few patterns, such as online softmax and Welford statistics, and does not synthesize invariants in general.</p>
-<p>The check treats floating-point values as real numbers, so equivalence holds in real arithmetic. It is also incomplete: finding no proof does not mean the kernel is wrong.</p>
+<p>At each step, SentryWard decomposes a kernel expression as \(c \cdot \sum_{k \in S} t(k) + r\), where \(t(k)\) matches terms of a reference reduction, \(c\) is a common factor, and \(r\) is the residual expression. When \(S\) covers the reference index domain exactly once, the matched sum can be replaced by the reference reduction; the factor \(c\) and residual \(r\) remain. Coverage is checked using a compact representation of index sets based on generating functions, rather than explicit enumeration. This supports large and strided ranges. Reduction-free expressions are compared by canonicalization into <a href="https://doi.org/10.4230/LIPIcs.ITCS.2026.95">exponential polynomials</a>, with separate treatment of operations such as square roots.</p>
+<p>Figure 10 uses two blocks to expose the proof structure. For supported kernels that merge blocks in a loop, SentryWard uses induction with an invariant relating the loop state to the reference. This capability is limited to predefined patterns, including online softmax and Welford statistics; the tool does not synthesize arbitrary loop invariants.</p>
+<p>The result is a proof in real arithmetic, subject to the input domain and modeling assumptions. Reordering a reduction may still change floating-point rounding on hardware. The equivalence procedure is also incomplete: <code>equivalence_not_proven</code> records an unproved obligation, not a demonstrated numerical error.</p>
 
-<h2 id="results">Results</h2>
-<h3 id="library-issues">Issues found in popular kernel libraries</h3>
-<p>Real kernels go wrong in the same ways as our small example, but with more threads, stages, and barriers to hide the mistake. We describe three issues that we encountered while verifying kernels with SentryWard. The first turned out to be fixed upstream already; we reported the other two, and they are still waiting for a response.</p>
-<p><b>Caveat.</b> SentryWard&rsquo;s model of the hardware follows our reading of the PTX documentation. The model lives mostly in how SentryWard builds the event graph; the algorithms that follow do not depend on it and would work with a different model. The PTX documentation does not specify every detail, though, so our model may differ from how the hardware actually behaves. We welcome feedback and will refine the model as we learn more.</p>
-<p><b>PyTorch: a bug that was already fixed.</b> We happened to verify an older release, PyTorch 2.8.0, and SentryWard flagged a race in its MultiMarginLoss backward kernel. The kernel splits a row of gradients among the threads of a block: thread 0 writes the gradient of the target class, and then every thread scales its part of the row. With no barrier in between, the thread that owns the target class may scale a stale value. The bug had already been <a href="https://github.com/pytorch/pytorch/pull/158994">reported and fixed upstream</a>, independently of us, in PyTorch 2.9.0. It makes a useful sanity check: a real bug, confirmed by the PyTorch developers, that SentryWard finds on its own.</p>
+<h2 id="results">Evaluation</h2>
+<h3 id="library-issues">Case studies and evidence</h3>
+<p>The following case studies distinguish a previously confirmed defect from two reported ordering concerns. The PyTorch example was fixed independently upstream. The TileLang issue and CUTLASS pull request remain open as of 14 October 2026; their reports do not establish a reproduced hardware failure for the patterns discussed here.</p>
+<p>The concurrency findings depend on SentryWard&rsquo;s interpretation of the PTX execution rules. Missing ordering in the event model is evidence for a potential defect, but hardware may provide behavior not captured by that model. Conversely, failure to reproduce a problem in testing does not establish safety across all schedules. We therefore report static findings, hardware observations, and upstream confirmation separately.</p>
+<p><b>PyTorch: an independently confirmed missing barrier.</b> In PyTorch 2.8.0, the MultiMarginLoss backward kernel distributes a row of gradients across a thread block. Thread 0 writes the target-class gradient; each thread then scales the entries it owns. Without a barrier between these operations, another thread can scale the target entry before thread 0 writes it. SentryWard identifies this unordered pair. The defect was independently <a href="https://github.com/pytorch/pytorch/pull/158994">reported and fixed upstream</a>; the barrier is present in <a href="https://github.com/pytorch/pytorch/blob/v2.9.0/aten/src/ATen/native/cuda/MultiMarginLoss.cu#L124">PyTorch 2.9.0</a>. This case validates detection of a known defect rather than constituting a new discovery.</p>
 <pre><span class="c">// one block per row; thread t owns columns t, t + blockDim, ...</span>
 for each of my columns i &ne; target:
     gradInput[i] = h(i)                   <span class="c">// 0 if the margin holds</span>
@@ -248,7 +261,7 @@ for each of my columns i:
   <div data-fig="bug-pytorch"></div>
   <figcaption>Figure 11: The end of the MultiMarginLoss backward kernel in PyTorch 2.8.0. Nothing orders thread 0&rsquo;s write of the target class&rsquo;s gradient before another thread scales that entry. PyTorch 2.9.0 adds a <code>__syncthreads()</code> at the dashed line.</figcaption>
 </figure>
-<p><b>TileLang: a buffer reused too early.</b> Our second example comes from a compiler. TileLang turns tile-level Python into GPU kernels and pipelines the loads automatically. With two pipeline stages, tiles \(k\) and \(k + 2\) share a buffer, so the copy of tile \(k + 2\) must wait until the multiplication of tile \(k\) has finished reading. The planner orders the copy after the MMA instruction, but the tensor core executes that instruction asynchronously and keeps reading the buffer until a later wait. The copy can therefore overwrite operands in the middle of a multiplication, and SentryWard points to exactly that write and that read.</p>
+<p><b>TileLang: a potential shared-memory stage-lifetime violation.</b> In the <a href="https://github.com/tile-ai/tilelang/issues/3422">reported TileLang v0.1.15 pipeline</a>, tiles \(k\) and \(k+2\) share a buffer. The generated code issues the next copies into that buffer after issuing the MMA for tile \(k\), but before waiting for its completion. Because the MMA reads its operands asynchronously, issue order alone does not establish that the reads finish before the buffer is overwritten. SentryWard reports a potentially conflicting copy write and MMA read. The report documents the generated ordering and a static race candidate; its numerical hardware check could not be run.</p>
 <pre><span class="c"># TileLang program</span>
 for k in T.Pipelined(num_tiles, num_stages=2):
     T.copy(A[k], A_shared)
@@ -266,9 +279,9 @@ __syncthreads()                           <span class="c">// does not wait for t
 wait(mbar, k % 2)                         <span class="c">// MMA k is known to be done only here</span></pre>
 <figure>
   <div data-fig="bug-tilelang"></div>
-  <figcaption>Figure 12: TileLang&rsquo;s pipelined GEMM, where tiles \(k\) and \(k + 2\) share buffer \(s\). The copy of tile \(k + 2\) comes after the MMA&rsquo;s issue but before the wait for its completion, so nothing orders it after the tensor core&rsquo;s read of the buffer.</figcaption>
+  <figcaption>Figure 12: TileLang&rsquo;s pipelined GEMM, where tiles \(k\) and \(k + 2\) share buffer \(s\). The copy of tile \(k + 2\) is issued after the MMA but before its completion wait. In the analyzed model, the copy write is not ordered after the tensor core&rsquo;s read of the buffer.</figcaption>
 </figure>
-<p><b>CUTLASS: a signal sent too early.</b> Our third example is a close relative of the running example. In CUTLASS&rsquo;s Blackwell attention kernel, the softmax warpgroup writes row statistics to tensor memory and then tells the correction warpgroup that they are ready. But the write is asynchronous, and the signal goes out without waiting for it with <code>tcgen05.wait::st</code>. The correction warpgroup may then read the statistics before they land.</p>
+<p><b>CUTLASS: a potentially premature statistics notification.</b> In the Blackwell attention example, the softmax warpgroup writes row statistics to tensor memory and signals the correction warpgroup. The analyzed path has no <code>tcgen05.wait::st</code> between the asynchronous store and the signal. Under SentryWard&rsquo;s model, the signal therefore does not establish that the statistics are available before the consumer loads them. The <a href="https://github.com/NVIDIA/cutlass/pull/3653">proposed upstream fix and investigation</a> document the missing wait in compiled code, but also report that B200 stress tests did not reproduce stale reads. Whether an additional hardware guarantee makes the existing sequence safe remains unresolved.</p>
 <pre><span class="c">// softmax warpgroup, once per tile of keys</span>
 tcgen05.st(stats &larr; old_max, new_max)
 <del class="bad">tcgen05.wait::st()</del>                        <span class="c">// missing</span>
@@ -280,28 +293,43 @@ arrive(p_ready)                           <span class="c">// tells the MMA warp<
 
 <span class="c">// correction warpgroup</span>
 wait(stats_ready, phase)
-r = tcgen05.ld(stats)                     <span class="c">// may read stale statistics</span>
+r = tcgen05.ld(stats)                     <span class="c">// not ordered after the store in the model</span>
 scale = exp(r.old_max - r.new_max)</pre>
 <figure>
   <div data-fig="bug-cutlass-stats"></div>
-  <figcaption>Figure 13: The statistics hand-off in CUTLASS&rsquo;s attention example. The arrival does not wait for the asynchronous store, so nothing orders the store before the correction warpgroup&rsquo;s load.</figcaption>
+  <figcaption>Figure 13: The statistics hand-off in CUTLASS&rsquo;s attention example. In the analyzed model, the arrival does not establish completion of the asynchronous store before the correction warpgroup&rsquo;s load. This is an ordering concern; the linked investigation did not reproduce stale values on B200.</figcaption>
 </figure>
 
 <h3 id="redundant-synchronization">Removing redundant synchronization</h3>
-<p>Because SentryWard checks every schedule, <b>it can also identify synchronization that is unnecessary</b>: if a kernel still verifies after we remove a synchronization operation, that operation is redundant. We apply this test greedily to each verified kernel, one operation at a time, and keep each removal that passes it.</p>
-<p>We tried this on 44 kernels from our benchmark, each at two input sizes: the inputs of our examples, and larger inputs at which every pipeline buffer is reused (Figure 14). At the example inputs, 48.6% of the synchronization operations we tried turned out to be unnecessary, and removing them made 35 of the kernels faster on a B200, with a median reduction in kernel time of 7.5%. At the larger inputs, 42.4% were unnecessary, 37 kernels got faster, and the median reduction was 3.0%. Larger inputs thus leave less to remove, and a reduction found at one input may be wrong at another: at the larger inputs, SentryWard rejects 35 of the 44 reductions found at the example inputs, and 34 of those hang or fault on a B200. To double check, we also ran random tests: every reduced kernel produced exactly the same output as the original, over 500,000 launches at the example inputs and 20,000 at the larger ones.</p>
+<p>Synchronization removal tests whether an ordering operation is necessary for the checked properties at a particular configuration. Starting from a kernel that passes synchronization and memory checks, we remove one candidate operation, rerun those checks, and retain the removal only if they still pass. Candidates are considered greedily, so the retained set depends on the removal order; the procedure does not claim a globally minimal synchronization set.</p>
+<p><b>Experimental setup.</b> The reported evaluation compares 44 kernels at two input sizes: the example inputs and larger inputs selected to exercise reuse of every pipeline buffer. The reduced kernels are evaluated on a B200. Runtime reduction is measured relative to the original kernel at the same input size:</p>
+<div class="eq">\[\text{runtime reduction (\%)} = 100\,\frac{t_{\mathrm{original}} - t_{\mathrm{reduced}}}{t_{\mathrm{original}}}.\]</div>
+<p>Positive values indicate lower runtime; negative values indicate a regression. Figure 14 shows all 44 per-kernel measurements, including kernels with no measurable improvement.</p>
+<div class="tab-wrap">
+  <table class="booktabs results-table" aria-label="Synchronization-removal results for 44 kernels on B200">
+    <thead><tr><th scope="col">Metric</th><th scope="col">Example inputs</th><th scope="col">Larger inputs</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Candidate synchronization operations removed</th><td>48.6%</td><td>42.4%</td></tr>
+      <tr><th scope="row">Kernels with lower runtime</th><td>35 / 44</td><td>37 / 44</td></tr>
+      <tr><th scope="row">Median runtime reduction</th><td>7.5%</td><td>3.0%</td></tr>
+    </tbody>
+  </table>
+</div>
+<p><b>Input dependence.</b> Larger inputs permit fewer removals in this cohort. Applying the reductions obtained at the example inputs to the larger inputs causes SentryWard to reject 35 of the 44 reduced kernels; 34 of those rejected variants hang or fault on B200. Thus, a removal justified for one configuration must be reverified for another.</p>
+<p><b>Numerical validation.</b> For the reductions accepted at each input size, random testing produced outputs identical to the original kernels over 500,000 launches at the example inputs and 20,000 at the larger inputs. These observations complement the static synchronization and memory checks; they do not establish bitwise equivalence for untested inputs.</p>
 <figure class="wide">
   <div data-fig="sync-removal"></div>
   <figcaption>Figure 14: Reduction in kernel time on a B200 after removing redundant synchronization, for 44 kernels at the example inputs and at larger inputs at which every pipeline buffer is reused; the switch selects the input size. Each dot is one kernel; dots at 0% show no measurable change. The dashed line marks the median.</figcaption>
 </figure>
 
-<h2 id="future-directions">Future directions</h2>
+<h2 id="future-directions">Limitations and future work</h2>
 <ul>
-  <li><b>Symbolic input shapes.</b> SentryWard currently fixes the problem sizes and the launch configuration. With symbolic shapes, one proof would cover all sizes.</li>
-  <li><b>Data-dependent control flow.</b> Branches and loop bounds may currently depend only on the launch configuration. Supporting branches on tensor data would cover many more kernels.</li>
-  <li><b>Weak memory model.</b> SentryWard currently assumes that a write is visible to all threads once it happens: it models the ordering that barriers and asynchronous completion provide, but not fences. Supporting the full PTX memory model would cover kernels that synchronize with fences.</li>
-  <li><b>Floating-point semantics.</b> Numerics matter in LLM training and inference. Low precision loses accuracy, large values overflow, and different summation orders give different results, for example across batch sizes or between training and inference. Extending SentryWard from real arithmetic to floating-point semantics would help reason about these issues.</li>
+  <li><b>Symbolic input shapes.</b> Extending specialization and phase reasoning to symbolic dimensions could allow one proof to cover a specified family of shapes and launches.</li>
+  <li><b>Data-dependent control flow.</b> Reasoning about tensor-dependent branches and loop bounds would extend coverage beyond the static-control fragment, without relying on assumptions that select representative paths.</li>
+  <li><b>Weak-memory semantics.</b> Modeling visibility, fences, and memory-ordering scopes is needed to replace the immediate-visibility assumption with a more complete account of PTX execution.</li>
+  <li><b>Floating-point semantics.</b> Modeling rounding, overflow, and reduction order would support numerical guarantees beyond real-arithmetic equivalence, including error bounds for low-precision kernels.</li>
 </ul>
+<p>The present method separates phase consistency, memory safety, and functional equivalence into explicit proof obligations. Its conclusions should be interpreted together with the verified input domain, modeling assumptions, and evidence reported for each check.</p>
 <p class="back-link"><a href="../../">&larr; Back to the project overview</a></p>
 </article>
 

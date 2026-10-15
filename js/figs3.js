@@ -30,9 +30,9 @@
   }
   function mid(p, q) { return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; }
 
-  // ---------- Figure 12: TileLang, the copy of tile k + 2 races with the MMA of tile k ----------
+  // ---------- Figure 12: TileLang, potential race between a stage refill and the MMA ----------
   S.figs['bug-tilelang'] = function (host) {
-    var g = graph(host, [760, 230], 'In TileLang’s pipelined GEMM, the copy of tile k + 2 into buffer s is not ordered after the MMA of tile k, which reads buffer s asynchronously.', {
+    var g = graph(host, [760, 230], 'Under SentryWard’s model of TileLang’s pipelined GEMM, the copy of tile k + 2 into buffer s is not ordered after the MMA of tile k, which reads buffer s asynchronously.', {
       iss: [175, 70, 'issue MMA\nof tile *k*', '', 150],
       cp: [415, 70, 'copy tile *k* + 2\ninto buffer *s*', 'bad', 160],
       wt: [655, 70, 'wait for the MMA\nof tile *k* returns', '', 160],
@@ -51,12 +51,12 @@
     var r0 = g.at('cp', 'sw'), r1 = g.at('mx', 'ne');
     g.edge([r0, r1], 'race');
     var m = mid(r0, r1);
-    g.text(m[0] + 14, m[1] + 4, 'race on buffer *s*', 'badtext bold', 'start');
+    g.text(m[0] + 14, m[1] + 4, 'potential race on *s*', 'badtext bold', 'start');
   };
 
-  // ---------- Figure 13: CUTLASS, the statistics store races with the correction load ----------
+  // ---------- Figure 13: CUTLASS, potential race between the statistics store and correction load ----------
   S.figs['bug-cutlass-stats'] = function (host) {
-    var g = graph(host, [760, 240], 'In CUTLASS’s attention example, the arrival does not wait for the asynchronous statistics store, so the store is not ordered before the correction warpgroup’s load.', {
+    var g = graph(host, [760, 240], 'Under SentryWard’s model of CUTLASS’s attention example, the arrival does not wait for the asynchronous statistics store, so the store is not ordered before the correction warpgroup’s load.', {
       st: [95, 70, 'issue `tcgen05.st`\nof the statistics', '', 160],
       ar: [270, 70, 'arrive on\nthe barrier', '', 120],
       wt: [505, 70, 'wait returns', '', 120],
@@ -79,7 +79,7 @@
     g.text(x[0] + 12, x[1] + 4, 'no `tcgen05.wait::st`', 'badtext', 'start');
     var r0 = g.at('wr', 'e'), r1 = g.at('ld', 's');
     g.edge([r0, r1], 'race');
-    g.text(470, 148, 'race on the statistics', 'badtext bold');
+    g.text(470, 148, 'potential race on statistics', 'badtext bold');
   };
 
   // ---------- Figure 11: PyTorch, the target gradient is scaled before it is written ----------
