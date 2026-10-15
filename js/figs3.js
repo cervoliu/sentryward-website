@@ -1,6 +1,6 @@
-/* Figures 11-14 of the blog. Figures 11-13 show the issues in the results, each as a small
+/* Figures 10-13 of the blog. Figures 10-12 show the issues in the results, each as a small
    static slice of the happens-before graph: white boxes are thread events, shaded boxes
-   asynchronous events, and blue edges orders through a barrier. Figure 14 shows the kernel
+   asynchronous events, and blue edges orders through a barrier. Figure 13 shows the kernel
    time after removing redundant synchronization. */
 (function () {
   'use strict';
@@ -30,7 +30,7 @@
   }
   function mid(p, q) { return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; }
 
-  // ---------- Figure 12: TileLang, the copy of tile k + 2 races with the MMA of tile k ----------
+  // ---------- Figure 11: TileLang, the copy of tile k + 2 races with the MMA of tile k ----------
   S.figs['bug-tilelang'] = function (host) {
     var g = graph(host, [760, 230], 'In TileLang’s pipelined GEMM, the copy of tile k + 2 into buffer s is not ordered after the MMA of tile k, which reads buffer s asynchronously.', {
       iss: [175, 70, 'issue MMA\nof tile *k*', '', 150],
@@ -54,7 +54,7 @@
     g.text(m[0] + 14, m[1] + 4, 'race on buffer *s*', 'badtext bold', 'start');
   };
 
-  // ---------- Figure 13: CUTLASS, the statistics store races with the correction load ----------
+  // ---------- Figure 12: CUTLASS, the statistics store races with the correction load ----------
   S.figs['bug-cutlass-stats'] = function (host) {
     var g = graph(host, [760, 240], 'In CUTLASS’s attention example, the arrival does not wait for the asynchronous statistics store, so the store is not ordered before the correction warpgroup’s load.', {
       st: [95, 70, 'issue `tcgen05.st`\nof the statistics', '', 160],
@@ -82,7 +82,7 @@
     g.text(470, 148, 'race on the statistics', 'badtext bold');
   };
 
-  // ---------- Figure 11: PyTorch, the target gradient is scaled before it is written ----------
+  // ---------- Figure 10: PyTorch, the target gradient is scaled before it is written ----------
   S.figs['bug-pytorch'] = function (host) {
     var g = graph(host, [760, 240], 'In PyTorch 2.8.0\u2019s MultiMarginLoss backward kernel, thread 0\u2019s write of the target class\u2019s gradient is not ordered before another thread scales that entry.', {
       bar: [380, 56, '`__syncthreads()`', '', 560],
@@ -102,7 +102,7 @@
     g.text(380, 218, 'race on `gradInput`[*target*]', 'badtext bold');
   };
 
-  // ---------- Figure 14: kernel time after removing redundant synchronization ----------
+  // ---------- Figure 13: kernel time after removing redundant synchronization ----------
   S.figs['sync-removal'] = function (host) {
     // Reduction in kernel time (%) on a B200 for the 44 kernels that were reduced at both the
     // example inputs and larger inputs (examples/index.md, PR #303); 0 is no measurable change.

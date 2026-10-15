@@ -110,7 +110,7 @@
       { t: 2.2, label: '<b>1</b>&ensp;The producer’s <code>arrive.expect_tx</code> gives <code>full</code> its one arrival and announces 32 KB, the size of both tiles.' },
       { t: 4.6, label: '<b>2</b>&ensp;The producer starts both TMA copies.' },
       { t: 6.8, label: '<b>3</b>&ensp;Each copy reports its bytes to <code>full</code> when its data lands. Once all 32 KB have landed, phase 0 completes.' },
-      { t: 9.8, label: '<b>4</b>&ensp;The MMA issuer was waiting for phase 0 of <code>full</code>, so it proceeds only now, with both tiles in shared memory.' },
+      { t: 9.8, label: '<b>4</b>&ensp;The consumer was waiting for phase 0 of <code>full</code>, so it proceeds only now, with both tiles in shared memory.' },
       { t: 12.0, label: '<b>5</b>&ensp;It starts the multiplication <code>acc ← sA · sB</code> on the tensor core.' },
       { t: 14.4, label: '<b>6</b>&ensp;When the multiplication completes, the hardware arrives on <code>mma_done</code>, completing its phase 0.' },
       { t: 16.6, label: '<b>7</b>&ensp;Every thread was waiting for phase 0 of <code>mma_done</code>; now the epilogue starts.' },
@@ -153,7 +153,7 @@
           return r;
         }
         var prod = thread(1.6, 'producer', 'thread 0');
-        var mmai = thread(4.65, 'MMA issuer', 'thread 32');
+        var mmai = thread(4.65, 'consumer', 'thread 32');
         var epi = thread(10.05, 'epilogue', 'all 128 threads');
         var waitM = S.text(svg, X(4.65), Y(-0.25) + 0.45 * K + 13, 'waits for `full`', { fs: 11, cls: 'muted it' });
         var waitE = S.text(svg, X(10.05), Y(-0.25) + 0.45 * K + 13, 'waits for `mma_done`', { fs: 11, cls: 'muted it' });
@@ -283,7 +283,7 @@
       ['Epilogue reads <code>acc</code>', '', '<b>already written</b>', 'good', 2]
     ];
     var LABELS = [
-      'In both executions, the copies land and complete phase 0 of <code>full</code>, as in the correct kernel, and the MMA issuer issues the MMA and the commit. Since the epilogue no longer waits, nothing holds back its read of <code>acc</code>.',
+      'In both executions, the copies land and complete phase 0 of <code>full</code>, as in the correct kernel, and the consumer issues the MMA and the commit. Since the epilogue no longer waits, nothing holds back its read of <code>acc</code>.',
       'In Schedule A, the epilogue reads <code>acc</code> right away, before the tensor core has written it. In Schedule B, the epilogue happens to be slow: the tensor core writes <code>acc</code> first, and the commit\u2019s arrival completes phase 0 of <code>mma_done</code>.',
       'In Schedule A, the tensor core writes <code>acc</code> only after the read, and phase 0 completes just the same. The barrier behaved the same way in both executions; only in Schedule B does the epilogue read the product.'
     ];

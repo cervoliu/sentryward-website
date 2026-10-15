@@ -1,7 +1,6 @@
-/* Figures 4-8 of the blog: the event graph (paper Fig. 5), the happens-before graph
-   (paper Fig. 8), the phase check (paper Fig. 9), the two views and a race (paper Fig. 6),
-   and thread groups (paper Fig. 10). Figures 9 and 10 are plain HTML in the page. Layouts
-   follow the paper's TikZ coordinates. */
+/* Figures 4-7 of the blog: the event graph (paper Fig. 5), the happens-before graph
+   (paper Fig. 8), the phase check (paper Fig. 9), and the two views and a race (paper Fig. 6).
+   Figures 8 and 9 are plain HTML in the page. Layouts follow the paper's TikZ coordinates. */
 (function () {
   'use strict';
   var S = SW;
@@ -302,45 +301,5 @@
       ['sacc', 'lr'].forEach(function (k) { ops[k].r.setAttribute('class', ops[k].cls + (buggy ? ' bad' : ' good')); });
     }
     select('correct');
-  };
-
-  // ---------- Figure 8: thread groups (paper Fig. 10), static ----------
-  S.figs['thread-groups'] = function (host) {
-    var K = 72;
-    function X(x) { return 60 + x * K; }
-    function Y(y) { return 34 + (0.4 - y) * 64; }
-    var stage = S.div('anim-stage', S.div('anim static', host));
-    var svg = S.el('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': 'The block starts as one group of threads and splits at two branches into three groups, each with its own template.' }, stage);
-    svg.style.minWidth = '680px';
-    function grp(x, y, label) {
-      var w = label.replace(/[`*_\\{}]/g, '').length * 7.2 + 26;
-      S.box(svg, X(x), Y(y), w, 34, 'box grp', 3);
-      S.text(svg, X(x), Y(y), label, { fs: 12.5 });
-      return { x: X(x), y: Y(y), w: w, h: 34 };
-    }
-    function body(n, text) {
-      var lines = text.split('\n').length, h = lines * 15.5 + 12;
-      var w = Math.max.apply(null, text.split('\n').map(function (l) { return l.replace(/[`*_]/g, '').length; })) * 6.3 + 22;
-      var top = n.y + n.h / 2 + 8;
-      S.el('rect', { x: n.x - w / 2, y: top, width: w, height: h, rx: 3, 'class': 'box body' }, svg);
-      S.text(svg, n.x - w / 2 + 9, top + 6, text, { fs: 11.5, anchor: 'start', valign: 'top', lh: 1.35 });
-    }
-    function split(a, b, label, left) {
-      var pa = S.anchor(a, 's'), pb = S.anchor(b, 'n');
-      S.el('path', { d: S.path([pa, pb]), 'class': 'ln' }, svg);
-      S.text(svg, (pa[0] + pb[0]) / 2 + (left ? -10 : 10), (pa[1] + pb[1]) / 2 - 6, label, { fs: 12, anchor: left ? 'end' : 'start', cls: 'muted' });
-    }
-    var all = grp(4.2, 0, 'threads 0–127');
-    var g0 = grp(0.4, -1.3, '{0}');
-    var r1 = grp(6.6, -1.3, '{1, …, 127}');
-    var g32 = grp(4.2, -2.6, '{32}');
-    var rest = grp(9.0, -2.6, '{1, …, 31} ∪ {33, …, 127}');
-    split(all, g0, '*t* = 0', true);
-    split(all, r1, '*t* ≠ 0', false);
-    split(r1, g32, '*t* = 32', true);
-    split(r1, rest, '*t* ≠ 32', false);
-    body(g0, 'init barriers\n`syncthreads`\nproducer\nepilogue with *t* = 0');
-    body(g32, '`syncthreads`\nMMA issuer\nepilogue with *t* = 32');
-    body(rest, '`syncthreads`\nepilogue with *t* bound per thread');
   };
 })();
