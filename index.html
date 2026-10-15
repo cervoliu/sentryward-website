@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SentryWard — Automatic Formal Verification of GPU Kernels</title>
-<meta name="description" content="SentryWard automatically and formally verifies NVIDIA Blackwell GPU kernels in PTX. Prove synchronization and race freedom, or add a PyTorch reference to prove mathematical correctness.">
+<meta name="description" content="Bring formal verification into agent-driven GPU kernel development. SentryWard checks synchronization, memory safety, and reference equivalence for NVIDIA Blackwell PTX kernels.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
@@ -22,10 +22,77 @@
 <main id="main" class="release">
   <section class="hero" aria-labelledby="release-title">
     <div class="hero-text">
-      <h1 id="release-title">Formal verification for GPU kernels</h1>
-      <p class="lead">SentryWard checks synchronization and memory safety in warp-specialized PTX kernels for NVIDIA Blackwell. With a PyTorch reference, it also proves equivalence in real arithmetic. Proofs cover every execution schedule for the configured launch under the verifier&rsquo;s model.</p>
+      <h1 id="release-title">Agents generate GPU kernels.<br><span>SentryWard verifies them.</span></h1>
+      <p class="lead">Automating kernel generation moves the bottleneck to correctness. SentryWard lets agents check each candidate automatically, use verification feedback to revise it, and repeat&mdash;bringing generation and formal verification into one automated workflow.</p>
       <div class="actions"><a href="#get-started">Installation</a><a href="blog/verifying-warp-specialized-gpu-kernels/">Technical article</a><a href="results/">Verification results</a></div>
     </div>
+  </section>
+
+  <section class="release-section workflows" id="agent-workflow" aria-labelledby="workflow-title">
+    <h2 id="workflow-title">From manual validation to an automated loop</h2>
+    <p class="reading">A kernel-writing agent can generate and optimize candidates. If each revision needs a person to inspect synchronization, investigate failures, and decide what to change, correctness becomes the bottleneck.</p>
+    <p class="workflow-input"><strong>Starting point</strong> A PyTorch reference, input shapes, and a launch configuration.</p>
+
+    <figure class="workflow-figure" aria-labelledby="manual-workflow-title">
+      <div class="workflow-heading">
+        <h3 id="manual-workflow-title">Agent generation, manual validation</h3>
+        <span class="workflow-mode">Human in the loop</span>
+      </div>
+      <ol class="workflow-track">
+        <li class="workflow-step">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></svg>
+          <strong>Coding agent</strong><span>Generate or optimize</span>
+        </li>
+        <li class="workflow-step">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6"/></svg>
+          <strong>Candidate kernel</strong><span>Compile to PTX</span>
+        </li>
+        <li class="workflow-step workflow-manual">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="7" r="3.5"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/></svg>
+          <strong>Manual validation</strong><span>Inspect, test, debug</span>
+        </li>
+        <li class="workflow-step">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-4m5 4V8m5 8V4"/></svg>
+          <strong>Reviewed candidate</strong><span>Benchmark performance</span>
+        </li>
+      </ol>
+      <div class="workflow-feedback manual-feedback"><span>Human directs revision</span></div>
+      <figcaption>Generation is automated, but the validation loop waits on human analysis. Tests exercise selected inputs and schedules.</figcaption>
+    </figure>
+
+    <figure class="workflow-figure" aria-labelledby="automatic-workflow-title">
+      <div class="workflow-heading">
+        <h3 id="automatic-workflow-title">Agent generation + SentryWard</h3>
+        <span class="workflow-mode automatic-mode">Automated verification loop</span>
+      </div>
+      <ol class="workflow-track">
+        <li class="workflow-step">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 16"/></svg>
+          <strong>Coding agent</strong><span>Generate or optimize</span>
+        </li>
+        <li class="workflow-step">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6"/></svg>
+          <strong>Candidate kernel</strong><span>Compile to PTX</span>
+        </li>
+        <li class="workflow-step workflow-verifier">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2 8 3v6c0 5-4 9-8 11-4-2-8-6-8-11V5z"/><path d="m8 12 3 3 5-6"/></svg>
+          <strong>SentryWard</strong><span>Verify every schedule*</span>
+        </li>
+        <li class="workflow-step workflow-verified">
+          <svg class="workflow-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/></svg>
+          <strong>Verified candidate</strong><span>Benchmark performance</span>
+        </li>
+      </ol>
+      <div class="workflow-feedback automatic-feedback"><span>Agent revises from diagnostics</span></div>
+      <figcaption>The agent can call SentryWard after every revision, use its structured diagnostics to repair the kernel, and advance candidates only when the required checks pass.</figcaption>
+    </figure>
+
+    <dl class="workflow-benefits">
+      <div><dt>Automatic checks</dt><dd>Run verification directly from the agent through the CLI or Python API.</dd></div>
+      <div><dt>Proof across schedules</dt><dd>Check synchronization, memory safety, and equivalence to the reference.</dd></div>
+      <div><dt>Actionable feedback</dt><dd>Return verdicts and witnesses to the agent for the next revision.</dd></div>
+    </dl>
+    <p class="scope-note workflow-scope">*For supported Blackwell PTX, proofs cover the configured shapes and launch under SentryWard&rsquo;s model; reference equivalence uses real arithmetic. An unsupported or timed-out check does not approve the kernel. Benchmarking and floating-point validation remain separate. <a href="#properties">Verification scope</a>.</p>
   </section>
 
   <section class="release-section" id="usage" aria-labelledby="usage-title">
