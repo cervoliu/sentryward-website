@@ -7,8 +7,10 @@
 .skip-link { position: absolute; top: -100px; left: 16px; z-index: 10; background: #fff; padding: 10px 16px; border: 1px solid var(--rule); }
 .skip-link:focus { top: 10px; }
 .release { max-width: 900px; margin: 0 auto; padding: 0 24px 56px; }
-.hero { padding: 44px 0 36px; }
-.hero h1 { font-size: clamp(28px, 3.5vw, 36px); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; margin: 0 0 18px; }
+.hero { display: flex; align-items: center; gap: 32px; padding: 44px 0 36px; }
+.hero-text { flex: 1 1 0; min-width: 0; }
+.hero-logo { flex: none; width: min(340px, 32vw); height: auto; }
+.hero h1 { text-wrap: balance; font-size: clamp(28px, 3.5vw, 36px); font-weight: 650; line-height: 1.25; letter-spacing: -.025em; margin: 0 0 18px; }
 .lead { max-width: 760px; font-size: 17px; line-height: 1.75; color: var(--text-2); margin: 0; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 20px; font-size: 15px; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 18px; border: 1px solid #cbd5e1; border-radius: 3px; padding: 8px 14px; font-size: 15px; font-weight: 600; color: var(--text); }
@@ -56,7 +58,6 @@
 .post-listing h2 a { color: var(--text); }
 .post-listing .post-summary { color: var(--text-2); }
 /* Agent generation and verification workflows. */
-.hero h1 span { color: var(--hb); }
 .workflow-input { margin: 24px 0 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 14px; }
 .workflow-input strong { margin-right: 12px; color: var(--text); }
 .workflow-figure { margin: 0; padding: 0 0 30px; }
@@ -101,7 +102,8 @@
 }
 
 @media (max-width: 760px) {
-  .hero { padding: 32px 0; }
+  .hero { flex-direction: column; align-items: stretch; gap: 0; padding: 32px 0; }
+  .hero-logo { order: -1; align-self: flex-start; width: 190px; margin: 0 0 26px; }
   .release { padding: 0 20px 40px; }
   .lead { font-size: 16px; }
   .release-section { padding-top: 26px; margin-bottom: 32px; }

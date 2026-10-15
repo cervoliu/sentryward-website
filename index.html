@@ -22,10 +22,11 @@
 <main id="main" class="release">
   <section class="hero" aria-labelledby="release-title">
     <div class="hero-text">
-      <h1 id="release-title">Agents generate GPU kernels.<br><span>SentryWard verifies them.</span></h1>
-      <p class="lead">Automating kernel generation moves the bottleneck to correctness. SentryWard lets agents check each candidate automatically, use verification feedback to revise it, and repeat&mdash;bringing generation and formal verification into one automated workflow.</p>
+      <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
+      <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
       <div class="actions"><a href="#get-started">Installation</a><a href="blog/verifying-warp-specialized-gpu-kernels/">Technical article</a><a href="results/">Verification results</a></div>
     </div>
+    <img class="hero-logo" src="assets/sentryward-mark.svg" width="340" height="222" alt="">
   </section>
 
   <section class="release-section workflows" id="agent-workflow" aria-labelledby="workflow-title">
