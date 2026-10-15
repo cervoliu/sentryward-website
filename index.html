@@ -100,7 +100,7 @@
   </section>
 
   <section class="release-section" id="usage" aria-labelledby="usage-title">
-    <h2 id="usage-title">Input and output</h2>
+    <h2 id="usage-title">What goes in. What comes out.</h2>
     <div class="io-grid">
       <div class="io-column">
         <h3>Input</h3>
@@ -113,7 +113,7 @@
       <div class="io-column">
         <h3>Output</h3>
         <dl class="io-list">
-          <div><dt>Verification verdict</dt><dd><code>race_free</code> means synchronization and memory checks passed without a reference. <code>verified</code> means reference equivalence was proved too.</dd></div>
+          <div><dt>A clear verdict</dt><dd><code>race_free</code> means synchronization and memory checks passed without a reference. <code>verified</code> means reference equivalence was proved too.</dd></div>
           <div><dt>Check results and witnesses</dt><dd>JSON from the CLI, or a Python dictionary, with each check&rsquo;s status and evidence for findings such as <code>potential_race</code>.</dd></div>
           <div><dt>Explicit limits</dt><dd><code>unsupported</code> or <code>timeout</code> explains why analysis stopped. An undecided check is never reported as a pass.</dd></div>
         </dl>
@@ -122,7 +122,7 @@
   </section>
 
   <section class="release-section" id="properties" aria-labelledby="properties-title">
-    <h2 id="properties-title">Verification scope</h2>
+    <h2 id="properties-title">What SentryWard verifies</h2>
     <dl class="property-list">
       <div><dt>Synchronization &amp; deadlocks</dt><dd>Barriers and mbarriers, including TMA byte counts, behave consistently across schedules, ruling out deadlocks.</dd></div>
       <div><dt>Data races</dt><dd>Conflicting accesses to global, shared, and tensor memory are ordered, including asynchronous copies and tensor-core operations.</dd></div>
