@@ -205,6 +205,14 @@ table.booktabs { width: 100%; border-collapse: collapse; font-size: 14px; line-h
 table.booktabs th { text-align: left; font-weight: 600; padding: 6px 8px; border-bottom: 1px solid #333; }
 table.booktabs td { padding: 6px 8px; white-space: nowrap; }
 table.booktabs td.st { text-align: center; }
+
+/* Instruction reference in the kernel walkthrough. */
+table.mbarrier-interface { margin: 0 0 18px; font-size: 15px; line-height: 1.55; table-layout: fixed; }
+table.mbarrier-interface caption { text-align: left; color: var(--muted); padding-bottom: 8px; font-size: 14px; }
+table.mbarrier-interface th:first-child { width: 36%; }
+table.mbarrier-interface tbody th, table.mbarrier-interface td { padding: 10px 8px; vertical-align: top; white-space: normal; border-bottom: 1px solid var(--rule); }
+table.mbarrier-interface code { overflow-wrap: anywhere; }
+
 table.booktabs tr.ph td { background: #ebebff; }
 table.booktabs tr.bad td { background: #ffebeb; color: var(--bad); }
 table.booktabs tr.good td { background: #e6f5e8; color: var(--good); }
