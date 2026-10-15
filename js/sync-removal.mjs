@@ -36,7 +36,7 @@ export function performanceLabel(performance) {
   const reduction = runtimeReduction(performance);
   if (reduction === null) return STATUS_LABELS[performance?.status] || 'Not reported';
   if (reduction === 0) return '0.0% change';
-  return `${Math.abs(reduction).toFixed(1)}% ${reduction > 0 ? 'lower' : 'higher'}`;
+  return `${Math.abs(reduction).toFixed(1)}% ${reduction > 0 ? 'faster' : 'slower'}`;
 }
 export function summarizeStudy(rows, scenario) {
   const results = rows.map(row => row.syncStudy?.[scenario]);
