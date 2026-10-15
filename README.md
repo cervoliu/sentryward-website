@@ -41,7 +41,9 @@ or [the verification database](http://127.0.0.1:8765/results/).
 
 `/results/` presents a versioned snapshot of
 `wmdi/wasp_verification:docs/kernel-verification-results.json`. Search, library/result filters,
-summary groups, sorting, pagination, and individual record links run entirely in the browser.
+compact result-group filters, sorting, pagination, and individual record links run entirely in the browser.
+The main table shows the verdict, removal counts, kernel timing, and analysis time. Open a kernel
+for its individual synchronization, memory, and equivalence checks and supporting evidence.
 The snapshot date, publishing revision, verifier workspace base, conditional analysis scopes,
 and incomplete checks remain visible. Summary counts are derived from the records and checked
 against the source counts. Reported findings are not presented as confirmed hardware failures.

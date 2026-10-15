@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kernel Verification Database — SentryWard</title>
+<title>Verification Results — SentryWard</title>
 <meta name="description" content="Explore SentryWard verification results across GPU kernel libraries. Inspect synchronization, memory, and equivalence checks, analysis limits, and recorded evidence.">
 <link rel="canonical" href="https://sentryward.io/results/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,61 +19,58 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar"><div class="in">
   <a class="brand" href="../" aria-label="SentryWard home"><img src="../assets/sentryward-wordmark.svg" width="113" height="22" alt="SentryWard"></a>
-  <nav class="topnav" aria-label="Main navigation"><a href="../">Overview</a><a href="./" aria-current="page">Results</a><a href="../blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub <span aria-hidden="true">↗</span></a></nav>
+  <nav class="topnav" aria-label="Main navigation"><a href="../">Overview</a><a href="./" aria-current="page">Results</a><a href="../blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav>
 </div></header>
 <main id="main" class="database">
   <section class="database-hero" aria-labelledby="page-title">
     <div>
-      <p class="eyebrow"><span class="database-symbol" aria-hidden="true">▦</span> The verification corpus</p>
-      <h1 id="page-title">Kernel verification database</h1>
-      <p class="database-intro">Synchronization, memory safety, and reference equivalence across GPU kernel libraries.</p>
+      <h1 id="page-title">Verification results</h1>
+      <p class="database-intro">Recorded GPU kernel checks and synchronization-removal measurements.</p>
     </div>
-    <a class="button download-link" href="../data/kernel-verification-results.json" download>Download JSON <span aria-hidden="true">↓</span></a>
+    <a class="download-link" href="../data/kernel-verification-results.json" download>Download JSON</a>
   </section>
 
-  <div class="snapshot-line"><span class="snapshot-tag"><span aria-hidden="true">◷</span> <span id="snapshot-date">Loading snapshot…</span></span><span id="corpus-meta"></span><a href="#about-data">About this data <span aria-hidden="true">↘</span></a></div>
+  <div class="snapshot-line"><span id="snapshot-date">Loading snapshot…</span><span id="corpus-meta"></span><a href="#about-data">About the data</a></div>
   <p id="load-state" role="status">Loading verification results…</p>
   <noscript><p class="data-notice">Enable JavaScript to search and inspect the database, or <a href="../data/kernel-verification-results.json">read the complete JSON snapshot</a>.</p></noscript>
 
-  <section id="overview" class="overview" aria-label="Snapshot overview" hidden>
-    <div class="summary-grid" id="summary-cards"></div>
-    <div class="distribution" id="distribution" aria-hidden="true"></div>
-    <div class="verdict-legend" id="verdict-legend" aria-label="Filter by result"></div>
-  </section>
+  <nav id="overview" class="overview" aria-label="Filter by result group" hidden>
+    <div class="result-groups" id="result-groups"></div>
+  </nav>
 
   <section id="explorer" class="explorer" aria-labelledby="explorer-title" hidden>
-    <div class="explorer-heading"><h2 id="explorer-title">Explore kernels</h2><p>Each row is one recorded kernel configuration.</p></div>
+    <h2 id="explorer-title" class="sr-only">Kernel results</h2>
     <form id="filters" class="filters" role="search" aria-label="Filter verification results">
-      <div class="search-field"><label for="search">Search kernels</label><div class="search-input"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="search" type="search" placeholder="Kernel name or diagnostic…" autocomplete="off"></div></div>
+      <div class="search-field"><label for="search">Search kernels</label><div class="search-input"><input id="search" type="search" placeholder="Kernel name or diagnostic…" autocomplete="off"></div></div>
       <div><label for="library">Library</label><select id="library"><option value="">All libraries</option></select></div>
       <div><label for="verdict">Result</label><select id="verdict"><option value="">All results</option></select></div>
-      <div><label for="sort">Sort by</label><select id="sort"><option value="name">Kernel name</option><option value="time">Longest runtime</option><option value="memory">Highest memory</option><option value="result">Result</option><option value="removable">Most removable syncs</option><option value="improvement">Largest runtime reduction</option></select></div>
+      <div><label for="sort">Sort by</label><select id="sort"><option value="name">Kernel name</option><option value="time">Longest analysis time</option><option value="memory">Highest memory</option><option value="result">Result</option><option value="removable">Most removable syncs</option><option value="improvement">Largest runtime reduction</option></select></div>
     </form>
     <section class="study-panel" aria-labelledby="study-title">
-      <div class="study-heading"><div><h3 id="study-title">Synchronization removal <span>B200 experiments</span></h3><p>Historical measurements for specific inputs, independent of the latest verification run.</p></div><div class="study-switch" role="group" aria-label="Synchronization experiment inputs"><button type="button" data-scenario="recorded" aria-pressed="true">Recorded inputs</button><button type="button" data-scenario="larger" aria-pressed="false">Larger-input study</button></div></div>
+      <div class="study-heading"><h3 id="study-title">Synchronization removal <span>NVIDIA B200</span></h3><div class="study-switch" role="group" aria-label="Synchronization experiment inputs"><button type="button" data-scenario="recorded" aria-pressed="true">Recorded inputs</button><button type="button" data-scenario="larger" aria-pressed="false">Larger-input study</button></div></div>
       <div class="study-summary" id="study-summary" aria-live="polite"></div>
-      <div class="study-options"><label><input type="checkbox" id="with-study"> Only kernels with removal counts</label><a href="#sync-methodology">Method &amp; scope ↘</a></div>
+      <div class="study-options"><label><input type="checkbox" id="with-study"> Only kernels with removal counts</label><a href="#sync-methodology">Method and scope</a></div>
       <p class="study-scope" id="study-scope">Removal counts and timings apply only to the selected input scenario.</p>
     </section>
-    <div class="table-toolbar"><p id="result-count" role="status" aria-live="polite"></p><button id="clear-filters" class="text-button" type="button">Reset filters</button></div>
-    <div class="table-scroll" tabindex="0" role="region" aria-label="Kernel results table; scroll horizontally to see all checks">
+    <div class="table-toolbar"><p><span id="result-count" role="status" aria-live="polite"></span><span class="table-hint"> · Select a kernel for individual checks and evidence.</span></p><button id="clear-filters" class="text-button" type="button">Reset filters</button></div>
+    <div class="table-scroll" tabindex="0" role="region" aria-label="Kernel results table; scroll horizontally to see all columns">
       <table class="kernel-table">
         <caption class="sr-only">Kernel verification results. Open a kernel to inspect its scope, checks, and evidence.</caption>
-        <thead><tr><th scope="col">Kernel / library</th><th scope="col">Result</th><th scope="col">Sync</th><th scope="col">Memory</th><th scope="col">Equivalence</th><th scope="col" class="study-column">Removable syncs</th><th scope="col" class="study-column">Kernel time after removal</th><th scope="col" class="numeric">Analysis time</th><th scope="col"><span class="sr-only">Details</span></th></tr></thead>
+        <thead><tr><th scope="col">Kernel</th><th scope="col">Result</th><th scope="col">Removable syncs</th><th scope="col">Kernel time after removal</th><th scope="col" class="numeric">Analysis time</th></tr></thead>
         <tbody id="kernel-rows"></tbody>
       </table>
     </div>
-    <div class="empty-state" id="empty-state" hidden><span aria-hidden="true">⌕</span><h3>No matching kernels</h3><p>Try a shorter name or select a different library or result.</p><button class="button" id="empty-reset" type="button">Reset filters</button></div>
+    <div class="empty-state" id="empty-state" hidden><h3>No matching kernels</h3><p>Try a shorter name or select a different library or result.</p><button class="button" id="empty-reset" type="button">Reset filters</button></div>
     <nav class="pagination" aria-label="Results pages"><span id="page-info"></span><div><button id="previous" type="button" aria-label="Previous page">← Previous</button><button id="next" type="button" aria-label="Next page">Next →</button></div></nav>
   </section>
 
   <section class="data-notes" id="about-data" aria-labelledby="data-title">
-    <div><p class="eyebrow">Scope &amp; provenance</p><h2 id="data-title">Read the result in context.</h2><p>A verdict applies to the recorded input configuration and the verifier’s model. It is not a claim about every shape, execution environment, or version of a library.</p><a href="../blog/verifying-warp-specialized-gpu-kernels/#how-it-works">How verification works <span aria-hidden="true">→</span></a></div>
+    <div><h2 id="data-title">About the data</h2><p>A verdict applies to the recorded input configuration and the verifier’s model. It is not a claim about every shape, execution environment, or version of a library.</p><a href="../blog/verifying-warp-specialized-gpu-kernels/#how-it-works">How verification works</a></div>
     <div class="notes-list">
-      <details id="sync-methodology"><summary>How are removals and performance measured?</summary><p>“Removable syncs” counts synchronization sites removed <strong>together</strong> while the reduced kernel still passed race-freedom verification, out of the executed candidate sites. This is not the dynamic instruction count or a maximum-removal guarantee. Fences and <code>griddepcontrol.wait</code> are excluded from the candidates.</p><p>Kernel timing is measured on an NVIDIA B200. “Lower” means a reduction in runtime; “higher” means a slowdown. Percentages and timings are preserved as reported, even when a percentage differs from the ratio of the displayed timings. “No measurable change” is distinct from “Not reported” or “Not applicable.” Analysis time is the verifier’s runtime, not the kernel’s runtime.</p><p>The recorded-input study uses verifier revisions <code>a47ae4f</code> / <code>be4e9f3</code>; the larger-input study uses <code>f8339ff</code>. These experiments are separate from the current verification snapshot and may use different inputs or budgets. For larger inputs, sites necessary at the recorded input were not retried. Some cases launch only selected CTAs or clusters; fixed-shape cases were rechecked at their original input. Each record preserves these caveats.</p><p id="study-provenance"></p><p><a href="../data/sync-removal-results.json" download>Download the synchronization study JSON ↓</a></p></details>
-      <details><summary>What do the result groups mean?</summary><p><strong>Verified</strong> records passed synchronization, memory, and reference-equivalence checks. <strong>Reported findings</strong> groups potential races, invalid lifecycles, and inconsistent synchronization; these are verifier findings, not necessarily reproduced hardware failures. <strong>Inconclusive</strong> groups unsupported analyses and time, memory, or analysis limits.</p><p>Per-check outcomes are preserved. “Not run” and “Incomplete” do not mean passed. The equivalence contract and definedness information are available in each record.</p></details>
-      <details><summary>Are any analyses conditional?</summary><p id="conditional-note">Some records use configured branch decisions. Their verdicts apply only to those scenarios. Open a marked record to see every recorded branch decision.</p><p>Warnings and their collection status are reported independently of the overall verdict.</p></details>
-      <details><summary>Where does the data come from?</summary><div id="provenance"><p>This page serves a versioned copy of the kernel-verification results snapshot. It does not run the verifier or refresh from the source repository in your browser.</p></div><p>Source-file links require access to the source repository. The downloadable snapshot is available here. Recorded file hashes describe the analyzed inputs; files linked at the publishing revision may differ from those inputs.</p></details>
+      <details id="sync-methodology"><summary>Synchronization-removal methodology</summary><p>“Removable syncs” counts synchronization sites removed <strong>together</strong> while the reduced kernel still passed race-freedom verification, out of the executed candidate sites. This is not the dynamic instruction count or a maximum-removal guarantee. Fences and <code>griddepcontrol.wait</code> are excluded from the candidates.</p><p>Kernel timing is measured on an NVIDIA B200. “Lower” means a reduction in runtime; “higher” means a slowdown. Percentages and timings are preserved as reported, even when a percentage differs from the ratio of the displayed timings. “No measurable change” is distinct from “Not reported” or “Not applicable.” Analysis time is the verifier’s runtime, not the kernel’s runtime.</p><p>The recorded-input study uses verifier revisions <code>a47ae4f</code> / <code>be4e9f3</code>; the larger-input study uses <code>f8339ff</code>. These experiments are separate from the current verification snapshot and may use different inputs or budgets. For larger inputs, sites necessary at the recorded input were not retried. Some cases launch only selected CTAs or clusters; fixed-shape cases were rechecked at their original input. Each record preserves these caveats.</p><p id="study-provenance"></p><p><a href="../data/sync-removal-results.json" download>Download synchronization study JSON</a></p></details>
+      <details><summary>Verification outcomes</summary><p><strong>Verified</strong> records passed synchronization, memory, and reference-equivalence checks. <strong>Reported findings</strong> groups potential races, invalid lifecycles, and inconsistent synchronization; these are verifier findings, not necessarily reproduced hardware failures. <strong>Inconclusive</strong> groups unsupported analyses and time, memory, or analysis limits.</p><p>Per-check outcomes are preserved. “Not run” and “Incomplete” do not mean passed. The equivalence contract and definedness information are available in each record.</p></details>
+      <details><summary>Conditional analyses</summary><p id="conditional-note">Some records use configured branch decisions. Their verdicts apply only to those scenarios. Open a marked record to see every recorded branch decision.</p><p>Warnings and their collection status are reported independently of the overall verdict.</p></details>
+      <details><summary>Source and provenance</summary><div id="provenance"><p>This page serves a versioned copy of the kernel-verification results snapshot. It does not run the verifier or refresh from the source repository in your browser.</p></div><p>Source-file links require access to the source repository. The downloadable snapshot is available here. Recorded file hashes describe the analyzed inputs; files linked at the publishing revision may differ from those inputs.</p></details>
     </div>
   </section>
 </main>

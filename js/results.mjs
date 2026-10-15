@@ -24,7 +24,7 @@ const tone = verdict => Object.hasOwn(VERDICTS, verdict) ? `tone-${verdict}` : '
 function badge(verdict) {
   const node = el('span', `verdict-badge ${tone(verdict)}`);
   node.title = verdict;
-  node.append(el('span', 'dot'), document.createTextNode(resultLabel(verdict)));
+  node.textContent = resultLabel(verdict);
   return node;
 }
 function check(status) {
@@ -69,38 +69,25 @@ function setFilter(changes) {
 function resetFilters() { setFilter({ search: '', library: '', verdict: '', group: '', sort: 'name', withStudy: false }); }
 
 function renderOverview() {
-  const cards = [
-    ['', 'Kernel configurations', stats.total, `${new Set(rows.map(r => libraryOf(r.name))).size} libraries in the corpus`, ''],
-    ['verified', 'Verified', stats.verified, 'All three checks passed', 'tone-verified'],
-    ['findings', 'Reported findings', stats.findings, 'Race, lifecycle, or synchronization', 'tone-potential_race'],
-    ['inconclusive', 'Inconclusive', stats.inconclusive, 'Unsupported or analysis limits', 'tone-unsupported'],
+  const groups = [
+    ['', 'All', stats.total],
+    ['verified', 'Verified', stats.verified],
+    ['findings', 'Reported findings', stats.findings],
+    ['inconclusive', 'Inconclusive', stats.inconclusive],
   ];
-  if (stats.other) cards.push(['other', 'Other results', stats.other, 'Inspect each recorded verdict', '']);
-  for (const [group, title, count, description, className] of cards) {
-    const button = el('button', `summary-card ${className}`);
+  if (stats.other) groups.push(['other', 'Other', stats.other]);
+  for (const [group, title, count] of groups) {
+    const button = el('button', 'result-group');
     button.type = 'button';
     button.dataset.group = group;
-    const label = el('span', 'summary-label');
-    label.append(el('span', 'dot'), document.createTextNode(title));
-    const arrow = el('span', 'summary-arrow', '↗');
-    arrow.setAttribute('aria-hidden', 'true');
-    button.append(label, arrow, el('span', 'summary-number', number(count)), el('span', 'summary-description', description));
+    button.append(document.createTextNode(title + ' '), el('span', 'group-count', number(count)));
     button.addEventListener('click', () => setFilter({ group, verdict: '' }));
-    $('summary-cards').append(button);
+    $('result-groups').append(button);
   }
   const keys = [...Object.keys(VERDICTS), ...Object.keys(stats.counts).filter(key => !Object.hasOwn(VERDICTS, key))];
   for (const verdict of keys) {
     const count = stats.counts[verdict];
     if (!count) continue;
-    const segment = el('span', tone(verdict));
-    segment.style.flexGrow = String(count);
-    $('distribution').append(segment);
-    const button = el('button', `legend-item ${tone(verdict)}`);
-    button.type = 'button';
-    button.dataset.verdict = verdict;
-    button.append(el('span', 'dot'), document.createTextNode(resultLabel(verdict)), el('span', 'legend-count', number(count)));
-    button.addEventListener('click', () => setFilter({ verdict: state.verdict === verdict ? '' : verdict, group: '' }));
-    $('verdict-legend').append(button);
     const option = el('option', '', `${resultLabel(verdict)} (${count})`);
     option.value = verdict;
     $('verdict').append(option);
@@ -129,8 +116,8 @@ function renderStudySummary(filtered) {
   timing.append(el('strong', '', `${totals.faster} lower · ${totals.slower} higher · ${totals.unchanged} unchanged`), document.createTextNode(` kernel runtimes · ${totals.timed} timed ${totals.timed === 1 ? 'kernel' : 'kernels'}`));
   summary.append(counts, timing);
   $('study-scope').textContent = state.scenario === 'larger'
-    ? 'For the filtered kernels · Larger-input results include fixed-shape rechecks. Counts and timings can cover different kernel sets; do not reuse recorded-input removals at larger shapes.'
-    : 'For the filtered kernels · Counts and timings can cover different kernel sets. Recorded-input removals may become unsafe when the input shape changes.';
+    ? 'Historical study; includes original-shape rechecks. Counts and timings may cover different kernels. Removals apply only to the tested input.'
+    : 'Historical study. Counts and timings may cover different kernels. Removals apply only to the tested input.';
 }
 function studyCells(row, tr) {
   const sample = row.syncStudy?.[state.scenario];
@@ -158,10 +145,9 @@ function render() {
   $('library').value = state.library;
   $('verdict').value = state.verdict;
   $('sort').value = state.sort;
-  document.querySelectorAll('.summary-card').forEach(button => {
+  document.querySelectorAll('.result-group').forEach(button => {
     button.setAttribute('aria-pressed', String(button.dataset.group === state.group && !state.verdict));
   });
-  document.querySelectorAll('.legend-item').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.verdict === state.verdict)));
   const filtered = filterRows(rows, state);
   renderStudySummary(filtered);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -189,16 +175,8 @@ function render() {
     const resultCell = el('td');
     resultCell.append(badge(row.result));
     tr.append(nameCell, resultCell);
-    for (const key of ['synchronization', 'memory', 'equivalence']) {
-      const td = el('td');
-      td.append(check(row.checks[key]));
-      tr.append(td);
-    }
     studyCells(row, tr);
     tr.append(el('td', 'numeric', formatSeconds(row.elapsed_seconds)));
-    const arrow = el('td', 'row-arrow', '↗');
-    arrow.setAttribute('aria-hidden', 'true');
-    tr.append(arrow);
     fragment.append(tr);
   }
   $('kernel-rows').replaceChildren(fragment);
@@ -396,7 +374,7 @@ async function init() {
     $('clear-filters').addEventListener('click', resetFilters);
     $('empty-reset').addEventListener('click', resetFilters);
     for (const [id, offset] of [['previous', -1], ['next', 1]]) {
-      $(id).addEventListener('click', () => { state.page += offset; render(); syncURL(); $('explorer-title').scrollIntoView({ block: 'start' }); });
+      $(id).addEventListener('click', () => { state.page += offset; render(); syncURL(); $('explorer').scrollIntoView({ block: 'start' }); });
     }
     $('close-detail').addEventListener('click', () => $('kernel-detail').close());
     $('kernel-detail').addEventListener('close', () => { openedKernel = null; syncURL(); });

@@ -16,22 +16,20 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar"><div class="in">
   <a class="brand" href="./" aria-label="SentryWard home"><img src="assets/sentryward-wordmark.svg" width="113" height="22" alt="SentryWard"></a>
-  <nav class="topnav" aria-label="Main navigation"><a href="#usage">Usage</a><a href="#properties">Properties</a><a href="blog/">Blog</a><a href="results/">Results</a></nav>
+  <nav class="topnav" aria-label="Main navigation"><a href="./" aria-current="page">Overview</a><a href="results/">Results</a><a href="blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav>
 </div></header>
 
 <main id="main" class="release">
   <section class="hero" aria-labelledby="release-title">
     <div class="hero-text">
-      <p class="eyebrow">Formal verification &middot; NVIDIA Blackwell</p>
-      <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
-      <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
-      <div class="actions"><a class="button primary" href="#get-started">Get started <span aria-hidden="true">&rarr;</span></a><a class="button" href="blog/verifying-warp-specialized-gpu-kernels/">How it works</a></div>
+      <h1 id="release-title">Formal verification for GPU kernels</h1>
+      <p class="lead">SentryWard checks synchronization and memory safety in warp-specialized PTX kernels for NVIDIA Blackwell. With a PyTorch reference, it also proves equivalence in real arithmetic. Proofs cover every execution schedule for the configured launch under the verifier&rsquo;s model.</p>
+      <div class="actions"><a href="#get-started">Installation</a><a href="blog/verifying-warp-specialized-gpu-kernels/">Technical article</a><a href="results/">Verification results</a></div>
     </div>
-    <img class="hero-logo" src="assets/sentryward-mark.svg" width="340" height="222" alt="">
   </section>
 
   <section class="release-section" id="usage" aria-labelledby="usage-title">
-    <h2 id="usage-title">What goes in. What comes out.</h2>
+    <h2 id="usage-title">Input and output</h2>
     <div class="io-grid">
       <div class="io-column">
         <h3>Input</h3>
@@ -44,7 +42,7 @@
       <div class="io-column">
         <h3>Output</h3>
         <dl class="io-list">
-          <div><dt>A clear verdict</dt><dd><code>race_free</code> means synchronization and memory checks passed without a reference. <code>verified</code> means reference equivalence was proved too.</dd></div>
+          <div><dt>Verification verdict</dt><dd><code>race_free</code> means synchronization and memory checks passed without a reference. <code>verified</code> means reference equivalence was proved too.</dd></div>
           <div><dt>Check results and witnesses</dt><dd>JSON from the CLI, or a Python dictionary, with each check&rsquo;s status and evidence for findings such as <code>potential_race</code>.</dd></div>
           <div><dt>Explicit limits</dt><dd><code>unsupported</code> or <code>timeout</code> explains why analysis stopped. An undecided check is never reported as a pass.</dd></div>
         </dl>
@@ -53,7 +51,7 @@
   </section>
 
   <section class="release-section" id="properties" aria-labelledby="properties-title">
-    <h2 id="properties-title">What SentryWard verifies</h2>
+    <h2 id="properties-title">Verification scope</h2>
     <dl class="property-list">
       <div><dt>Synchronization &amp; deadlocks</dt><dd>Barriers and mbarriers, including TMA byte counts, behave consistently across schedules, ruling out deadlocks.</dd></div>
       <div><dt>Data races</dt><dd>Conflicting accesses to global, shared, and tensor memory are ordered, including asynchronous copies and tensor-core operations.</dd></div>
@@ -65,7 +63,7 @@
   </section>
 
   <section class="release-section" id="get-started" aria-labelledby="start-title">
-    <h2 id="start-title">Try it on your kernel</h2>
+    <h2 id="start-title">Installation</h2>
     <p class="reading">With Python 3.10 or newer, install and run synchronization and memory checks:</p>
     <pre class="install" tabindex="0" aria-label="Install and verify from the command line"><code>pip install sentryward
 sentryward kernel.ptx \
