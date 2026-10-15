@@ -34,9 +34,10 @@
     <p class="reading">A kernel-writing agent can generate and optimize candidates. If each revision needs a person to inspect synchronization, investigate failures, and decide what to change, correctness becomes the bottleneck.</p>
     <p class="workflow-input"><strong>Starting point</strong> A PyTorch reference, input shapes, and a launch configuration.</p>
 
+    <div class="workflow-comparison">
     <figure class="workflow-figure" aria-labelledby="manual-workflow-title">
       <div class="workflow-heading">
-        <h3 id="manual-workflow-title">Agent generation, manual validation</h3>
+        <h3 id="manual-workflow-title">Before: manual validation</h3>
         <span class="workflow-mode">Human in the loop</span>
       </div>
       <ol class="workflow-track">
@@ -61,9 +62,9 @@
       <figcaption>Generation is automated, but the validation loop waits on human analysis. Tests exercise selected inputs and schedules.</figcaption>
     </figure>
 
-    <figure class="workflow-figure" aria-labelledby="automatic-workflow-title">
+    <figure class="workflow-figure workflow-automatic" aria-labelledby="automatic-workflow-title">
       <div class="workflow-heading">
-        <h3 id="automatic-workflow-title">Agent generation + SentryWard</h3>
+        <h3 id="automatic-workflow-title">After: SentryWard</h3>
         <span class="workflow-mode automatic-mode">Automated verification loop</span>
       </div>
       <ol class="workflow-track">
@@ -87,6 +88,8 @@
       <div class="workflow-feedback automatic-feedback"><span>Agent revises from diagnostics</span></div>
       <figcaption>The agent can call SentryWard after every revision, use its structured diagnostics to repair the kernel, and advance candidates only when the required checks pass.</figcaption>
     </figure>
+
+    </div>
 
     <dl class="workflow-benefits">
       <div><dt>Automatic checks</dt><dd>Run verification directly from the agent through the CLI or Python API.</dd></div>
