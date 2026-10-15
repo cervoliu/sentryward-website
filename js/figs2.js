@@ -189,32 +189,32 @@
     function XB(x) { return 590 + x * K; }
     function YY(y) { return 50 + y * K; }
     var stage = S.div('anim-stage', S.div('anim static', host));
-    var svg = S.el('svg', { viewBox: '0 0 930 300', role: 'img', 'aria-label': 'Phase 0 of barrier full, restricted to its updates: with separate announcements, two updates can complete the phase early; in the correct kernel, only the complete phase reaches (0, 0).' }, stage);
+    var svg = S.el('svg', { viewBox: '0 0 930 300', role: 'img', 'aria-label': 'The updates to barrier full in phase 0: with separate announcements, the first announcement and the arrival of copy A can complete the phase early; in the correct kernel, only all three updates together complete it.' }, stage);
     svg.style.minWidth = '720px';
     function card(x, y, w, s, cls) {
       S.box(svg, x, y, w, H, 'box' + (cls ? ' ' + cls : ''), 3);
       S.text(svg, x, y, s, { fs: 11.5 });
     }
     function arrow(pts) { S.el('path', { d: S.path(pts), 'class': 'ln' }, svg); }
-    // (a) Separate announcements: AE_A and C_A can happen first and reach (0, 0).
+    // (a) Separate announcements: the first announcement and copy A can happen first and reach (0, 0).
     var W = 3.0 * K;
-    card(XA(0), YY(0), W, 'AE_A: arrive.expect_tx 16 KB', 'bad');
-    card(XA(0), YY(1.4), W, 'E_B: expect_tx 16 KB', 'omit');
-    card(XA(0), YY(2.8), W, 'C_B: complete_tx 16 KB', 'omit');
-    card(XA(3.5), YY(1.4), W, 'C_A: complete_tx 16 KB', 'bad');
+    card(XA(0), YY(0), W, '`arrive.expect_tx` 16 KB', 'bad');
+    card(XA(0), YY(1.4), W, '`expect_tx` 16 KB', 'omit');
+    card(XA(0), YY(2.8), W, 'copy B lands: \u221216 KB', 'omit');
+    card(XA(3.5), YY(1.4), W, 'copy A lands: \u221216 KB', 'bad');
     arrow([[XA(0), YY(0) + H / 2], [XA(0), YY(1.4) - H / 2]]);
     arrow([[XA(0), YY(1.4) + H / 2], [XA(0), YY(2.8) - H / 2]]);
     arrow([[XA(0) + W / 2, YY(0)], [XA(3.5), YY(0)], [XA(3.5), YY(1.4) - H / 2]]);
-    S.text(svg, XA(1.9), YY(2.35), 'AE_A, then C_A:\n(1, 0) \u2192 (0, 16 KB) \u2192 (0, 0)\nphase 0 completes early', { fs: 12, lh: 1.3, valign: 'top', anchor: 'start', cls: 'badtext' });
+    S.text(svg, XA(1.9), YY(2.35), 'Announce A, then copy A lands:\n(1, 0) \u2192 (0, 16 KB) \u2192 (0, 0)\nphase 0 completes early', { fs: 12, lh: 1.3, valign: 'top', anchor: 'start', cls: 'badtext' });
     S.text(svg, XA(1.75), YY(3.75), '(a) Separate announcements', { fs: 12, cls: 'muted' });
-    // (b) Correct kernel: AE always comes first, so only the complete phase reaches (0, 0).
+    // (b) Correct kernel: the announcement always comes first, so only the complete phase reaches (0, 0).
     var WB = 2.6 * K, yb = YY(0) + H / 2 + 0.3 * K;
-    card(XB(1.45), YY(0), WB, 'AE: arrive.expect_tx 32 KB');
-    card(XB(0), YY(1.4), WB, 'C_A: complete_tx 16 KB');
-    card(XB(2.9), YY(1.4), WB, 'C_B: complete_tx 16 KB');
+    card(XB(1.45), YY(0), WB, '`arrive.expect_tx` 32 KB');
+    card(XB(0), YY(1.4), WB, 'copy A lands: \u221216 KB');
+    card(XB(2.9), YY(1.4), WB, 'copy B lands: \u221216 KB');
     arrow([[XB(1.45), YY(0) + H / 2], [XB(1.45), yb], [XB(0), yb], [XB(0), YY(1.4) - H / 2]]);
     arrow([[XB(1.45), yb], [XB(2.9), yb], [XB(2.9), YY(1.4) - H / 2]]);
-    S.text(svg, XB(1.45), YY(2.35), 'AE always comes first:\n(1, 0) \u2192 (0, 32 KB) \u2192 (0, 16 KB) \u2192 (0, 0)\nonly the complete phase reaches (0, 0)', { fs: 12, lh: 1.3, valign: 'top', cls: 'goodtext' });
+    S.text(svg, XB(1.45), YY(2.35), 'The announcement always comes first:\n(1, 0) \u2192 (0, 32 KB) \u2192 (0, 16 KB) \u2192 (0, 0)\nonly the complete phase reaches (0, 0)', { fs: 12, lh: 1.3, valign: 'top', cls: 'goodtext' });
     S.text(svg, XB(1.45), YY(3.75), '(b) Correct kernel', { fs: 12, cls: 'muted' });
   };
 
