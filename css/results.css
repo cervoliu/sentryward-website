@@ -147,3 +147,9 @@ body:has(#kernel-detail[open]) { overflow: hidden; }
   .check-card strong { font-size: 11px; }
   .record-facts { column-gap: 14px; }
 }
+
+.input-table-section h4 { font-size: 13px; font-weight: 500; margin: 18px 0 8px; }
+.input-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+.input-table th, .input-table td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); padding: 7px 10px 7px 0; overflow-wrap: anywhere; }
+.input-table th { color: var(--muted); font-weight: 500; }
+.input-table td { font-family: Inconsolata, monospace; font-size: 13px; }

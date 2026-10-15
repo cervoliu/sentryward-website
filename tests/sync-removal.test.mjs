@@ -29,7 +29,7 @@ test('measured zero, missing data, not run, and not applicable remain distinct',
 
 test('slowdowns and no measurable change preserve the reported interpretation', () => {
   const slow = kernel('tilelang-online-softmax').syncStudy.recorded.performance;
-  assert.equal(performanceLabel(slow), '2.5% higher');
+  assert.equal(performanceLabel(slow), '2.5% slower');
   assert.equal(runtimeReduction(slow), -2.5);
   const unchanged = kernel('tirx-basic-rmsnorm').syncStudy.recorded.performance;
   assert.notEqual(unchanged.original_us, unchanged.reduced_us);
@@ -41,8 +41,8 @@ test('scenario selection uses separate counts and timings', () => {
   const row = kernel('cutlass__block-scaled-gemm-mixed-8-bit__sm_100a');
   assert.equal(removalLabel(row.syncStudy.recorded.removal), '20 of 50');
   assert.equal(removalLabel(row.syncStudy.larger.removal), '19 of 52');
-  assert.equal(performanceLabel(row.syncStudy.recorded.performance), '13.4% lower');
-  assert.equal(performanceLabel(row.syncStudy.larger.performance), '6.7% lower');
+  assert.equal(performanceLabel(row.syncStudy.recorded.performance), '13.4% faster');
+  assert.equal(performanceLabel(row.syncStudy.larger.performance), '6.7% faster');
   assert.equal(kernel('tilelang-online-softmax').syncStudy.larger.rechecked_at_recorded_input, true);
 });
 

@@ -1,11 +1,14 @@
 import { VERDICTS, libraryOf, displayName, validateSnapshot, summarize, filterRows, resultLabel, formatSeconds, formatMemory } from './results-model.mjs';
 
+import { readInputConfig } from './kernel-inputs.mjs';
+
 import { SCENARIOS, validateStudy, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
 
 const $ = id => document.getElementById(id);
 const PAGE_SIZE = 200;
 const repository = 'https://github.com/wmdi/wasp_verification';
 let snapshot, source, stats, rows, study, studyAvailable = false, state, openedKernel = null;
+let inputBundlePromise;
 const number = value => Number.isFinite(value) ? value.toLocaleString('en-US') : 'Not recorded';
 const el = (tag, className = '', text = '') => {
   const node = document.createElement(tag);
@@ -113,7 +116,7 @@ function renderStudySummary(filtered) {
   const counts = el('p');
   counts.append(el('strong', '', `${number(totals.removable)} of ${number(totals.candidates)}`), document.createTextNode(` candidate sites removable · ${totals.tested} ${totals.tested === 1 ? 'kernel' : 'kernels'} with counts`));
   const timing = el('p');
-  timing.append(el('strong', '', `${totals.faster} lower · ${totals.slower} higher · ${totals.unchanged} unchanged`), document.createTextNode(` kernel runtimes · ${totals.timed} timed ${totals.timed === 1 ? 'kernel' : 'kernels'}`));
+  timing.append(el('strong', '', `${totals.faster} faster · ${totals.slower} slower · ${totals.unchanged} unchanged`), document.createTextNode(` kernel runtimes · ${totals.timed} timed ${totals.timed === 1 ? 'kernel' : 'kernels'}`));
   summary.append(counts, timing);
   $('study-scope').textContent = state.scenario === 'larger'
     ? 'Historical study; includes original-shape rechecks. Counts and timings may cover different kernels. Removals apply only to the tested input.'
@@ -203,6 +206,89 @@ function fact(parent, title, value) {
   parent.append(item);
 }
 
+function inputTable(parent, title, headings, rows, expandable = false) {
+  const section = el(expandable ? 'details' : 'div', 'input-table-section');
+  section.append(el(expandable ? 'summary' : 'h4', '', title));
+  const table = el('table', 'input-table');
+  const header = el('tr');
+  for (const heading of headings) {
+    const cell = el('th', '', heading);
+    cell.scope = 'col';
+    header.append(cell);
+  }
+  const head = el('thead');
+  head.append(header);
+  const body = el('tbody');
+  for (const values of rows) {
+    const row = el('tr');
+    for (const value of values) row.append(el('td', '', value));
+    body.append(row);
+  }
+  table.append(head, body);
+  section.append(table);
+  parent.append(section);
+}
+
+async function inputDetail(parent, row) {
+  const section = el('section', 'input-config');
+  section.append(el('h3', '', 'Input configuration'));
+  const content = el('div');
+  content.setAttribute('aria-live', 'polite');
+  appendText(content, 'Loading recorded input…', 'detail-note');
+  section.append(content);
+  parent.append(section);
+  try {
+    inputBundlePromise ??= fetch('../data/kernel-input-configs.json').then(response => {
+      if (!response.ok) throw new Error('Input configurations unavailable.');
+      return response.json();
+    }).catch(error => { inputBundlePromise = undefined; throw error; });
+    const { config, content: raw } = await readInputConfig(await inputBundlePromise, row.files?.input);
+    // A different record may have been opened while the configuration was loading.
+    if (!section.isConnected) return;
+    content.replaceChildren();
+    appendText(content, 'Exact input for this verification run, matched to its recorded SHA-256. Historical removal experiments may use different inputs.', 'detail-note');
+    const launch = config.launch || {};
+    const dims = value => Array.isArray(value) ? value.join(' × ') : 'Not recorded';
+    const facts = el('dl', 'record-facts');
+    fact(facts, 'Grid dimensions (CTAs)', dims(launch.grid_dim));
+    fact(facts, 'Block dimensions (threads)', dims(launch.block_dim));
+    fact(facts, 'Cluster dimensions (CTAs)', dims(launch.cluster_dim));
+    fact(facts, 'Dynamic shared memory', Number.isFinite(launch.dynamic_shared_bytes) ? `${number(launch.dynamic_shared_bytes)} bytes` : 'Not recorded');
+    content.append(facts);
+    if (config.tma_descriptors?.length) {
+      const shapes = config.tma_descriptors.map(descriptor => [
+        descriptor.object ?? 'Unnamed', descriptor.element_type ?? 'Not recorded', dims(descriptor.global_shape),
+      ]);
+      inputTable(content, 'TMA tensor shapes', ['Object', 'Element type', 'Global shape'],
+        [...new Map(shapes.map(shape => [JSON.stringify(shape), shape])).values()]);
+    }
+    if (config.arguments?.length) {
+      inputTable(content, `Configured arguments (${config.arguments.length})`, ['Argument', 'Type', 'Value'], config.arguments.map(arg => [
+        arg.field ?? `Parameter ${arg.parameter}${arg.offset === undefined ? '' : ` · byte offset ${arg.offset}`}`,
+        arg.type ?? config.declarations?.find(declaration => declaration.name === arg.field && arg.field !== undefined)?.type ?? 'Not recorded',
+        Object.hasOwn(arg, 'value') ? (typeof arg.value === 'string' ? arg.value : JSON.stringify(arg.value)) : 'Not recorded',
+      ]), true);
+    } else appendText(content, 'No explicit argument values are recorded. See the full configuration for declarations and assumptions.', 'detail-note');
+    const full = el('details');
+    const pre = el('pre', '', raw);
+    pre.tabIndex = 0;
+    pre.setAttribute('aria-label', 'Full input configuration (JSON)');
+    full.append(el('summary', '', 'Full input configuration (JSON)'), pre);
+    content.append(full);
+    const download = link('Download input.json', `data:application/json;charset=utf-8,${encodeURIComponent(raw)}`);
+    download.download = `${row.name}.input.json`;
+    const action = el('p', 'detail-note');
+    action.append(download);
+    content.append(action);
+  } catch (error) {
+    inputBundlePromise = undefined;
+    if (!section.isConnected) return;
+    content.replaceChildren();
+    appendText(content, 'The recorded input configuration could not be loaded or verified. Reopen this record to retry; verification results remain available.', 'detail-note');
+    console.warn('Kernel input configuration:', error);
+  }
+}
+
 function studyDetail(body, row) {
   body.append(el('h3', '', 'Synchronization removal & kernel performance'));
   if (!studyAvailable || !row.syncStudy) {
@@ -261,6 +347,7 @@ function showDetail(row) {
   fact(facts, 'Run identifier (UTC)', row.run || 'Not recorded');
   fact(facts, 'Snapshot', dateLabel(snapshot.snapshot_date));
   body.append(facts);
+  inputDetail(body, row);
   studyDetail(body, row);
   if (row.recorded_followup?.analysis || row.recorded_followup?.upstream_references) {
     body.append(el('h3', '', 'Recorded follow-up'));

@@ -11,6 +11,7 @@ import re
 import subprocess
 import tempfile
 from sync_removal import parse_sync_study
+from kernel_inputs import collect_inputs
 
 REPOSITORY = 'wmdi/wasp_verification'
 SOURCE_PATH = 'docs/kernel-verification-results.json'
@@ -21,7 +22,7 @@ def api(path):
     return json.loads(subprocess.check_output(['gh', 'api', path]))
 
 
-def refresh(ref):
+def refresh(ref, input_root=None):
     # Resolve once, then fetch that immutable revision rather than a moving branch.
     commit = api('repos/{}/commits/{}'.format(REPOSITORY, ref))
     revision = commit['sha']
@@ -64,10 +65,23 @@ def refresh(ref):
         'repository': REPOSITORY, 'revision': revision,
         'published_at': commit['commit']['committer']['date'],
     }, {row['name'] for row in rows})
+    def read_input(path):
+        if input_root is not None:
+            resolved = (input_root / path).resolve()
+            if input_root not in resolved.parents:
+                raise ValueError('Input path leaves the analyzed workspace')
+            return resolved.read_bytes()
+        content = api('repos/{}/contents/{}?ref={}'.format(REPOSITORY, path, revision))
+        if content.get('encoding') != 'base64':
+            raise ValueError('Unsupported input content encoding')
+        return base64.b64decode(content['content'])
+
+    inputs = collect_inputs(rows, read_input)
     directory = ROOT / 'data'
     directory.mkdir(exist_ok=True)
     for name, payload in [('kernel-verification-results.json', raw),
                           ('verification-source.json', (json.dumps(metadata, indent=2) + '\n').encode()),
+                          ('kernel-input-configs.json', (json.dumps(inputs, indent=2, ensure_ascii=False) + '\n').encode()),
                           ('sync-removal-results.json', (json.dumps(study, indent=2, ensure_ascii=False) + '\n').encode())]:
         with tempfile.NamedTemporaryFile(dir=str(directory), delete=False) as temp:
             temp.write(payload)
@@ -75,14 +89,16 @@ def refresh(ref):
         pending.replace(directory / name)
     print('Updated {} records from {} at {}'.format(len(rows), REPOSITORY, revision))
     print('Imported {} synchronization study records.'.format(len(study['results'])))
+    print('Bundled {} exact input configurations.'.format(len(inputs['inputs'])))
     print('Snapshot: {}. Review the data diff before committing and publishing.'.format(data['snapshot_date']))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--ref', default='main', help='Source branch or commit (default: main)')
+    parser.add_argument('--input-root', type=Path, help='Analyzed source workspace, if inputs differ from the publishing revision')
     args = parser.parse_args()
     try:
-        refresh(args.ref)
+        refresh(args.ref, args.input_root.resolve() if args.input_root else None)
     except (subprocess.CalledProcessError, OSError, ValueError, KeyError) as error:
         parser.exit(1, 'Snapshot update failed: {}\n'.format(error))
