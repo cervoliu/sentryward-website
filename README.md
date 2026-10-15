@@ -7,8 +7,18 @@ This is a static HTML, CSS, and JavaScript site. No build step or package instal
 
 ## Publishing
 
-GitHub Pages publishes the repository root from `main`. Changes pushed to `main` deploy automatically.
-The custom domain is [sentryward.io](https://sentryward.io); keep the root `CNAME` file in the repository.
+The [deployment workflow](.github/workflows/deploy-pages.yml) publishes the repository root to
+GitHub Pages whenever a pull request is merged into `main` or another commit is pushed to `main`.
+No build step or deployment secret is required. GitHub Pages must use **GitHub Actions** as its
+publishing source in the repository's **Settings → Pages**.
+
+Follow deployments in [GitHub Actions](https://github.com/gpu-verifier/sentryward-website/actions/workflows/deploy-pages.yml).
+To republish manually, select **Run workflow** on `main`. Deployments run one at a time;
+other branches do not publish the production site.
+
+The custom domain is [sentryward.io](https://sentryward.io); keep the root `CNAME` file and the
+custom domain setting in GitHub Pages. The
+[GitHub Pages address](https://gpu-verifier.github.io/sentryward-website/) redirects to this domain.
 
 Namecheap manages DNS. The root host (`@`) uses these GitHub Pages A records:
 `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, and `185.199.111.153`.
