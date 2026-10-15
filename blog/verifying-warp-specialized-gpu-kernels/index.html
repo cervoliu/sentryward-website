@@ -159,7 +159,7 @@ st.global(C[t, :] &larr; r)</pre>
 
 <figure class="wide">
   <div data-fig="phase-check"></div>
-  <figcaption>Figure 6: The updates to barrier <code>full</code> in phase 0. Both copies report their bytes to <code>full</code>, and an arrow points from an update to one that must come after it. (a) With separate announcements, the first announcement and copy A&rsquo;s arrival can happen before the other two and already bring <code>full</code> from (1, 0) to (0, 0), so phase 0 completes early (red); the gray updates then fall into phase 1. (b) In the correct kernel, the single announcement comes first, so only all three updates together complete the phase.</figcaption>
+  <figcaption>Figure 6: The updates to barrier <code>full</code> in phase 0. When a copy completes, it subtracts its bytes from <code>full</code> with a <code>complete_tx</code> update, and an arrow points from an update to one that must come after it. (a) With separate announcements, the first announcement and copy A&rsquo;s <code>complete_tx</code> can happen before the other two and already bring <code>full</code> from (1, 0) to (0, 0), so phase 0 completes early (red); the gray updates then fall into phase 1. (b) In the correct kernel, the single announcement comes first, so only all three updates together complete the phase.</figcaption>
 </figure>
 
 <p>The buggy kernel with the missing wait passes the well-synchronization check, since its barriers count exactly as in the correct kernel. But without the epilogue&rsquo;s wait, its happens-before graph has no path from the MMA&rsquo;s execution to the epilogue&rsquo;s loads (see the &ldquo;Buggy kernel&rdquo; tab in Figure 5).</p>
