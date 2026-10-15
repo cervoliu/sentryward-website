@@ -47,6 +47,9 @@ h2 { font-size: 27px; line-height: 1.3; letter-spacing: -0.015em; margin: 54px 0
 h3 { font-size: 20.5px; line-height: 1.35; margin: 38px 0 10px; font-weight: 700; }
 h4 { font-size: 17.5px; line-height: 1.4; margin: 30px 0 8px; font-weight: 650; }
 p { margin: 0 0 18px; }
+/* A limitation the reader should keep in mind, set apart from the main text. */
+.caveat { margin: 24px 0; padding: 14px 18px; border: 1px solid var(--rule); border-radius: 8px; color: var(--text-2); font-size: 16px; line-height: 1.7; }
+.caveat b { color: var(--text); }
 ul, ol { margin: 0 0 18px; padding-left: 1.4em; }
 li { margin: 5px 0; }
 b, strong { font-weight: 650; }
@@ -72,6 +75,16 @@ pre {
 pre .c { color: #6a737d; }
 pre .bad { color: var(--bad); font-weight: 700; }
 pre del { text-decoration-thickness: 1.5px; }
+/* Operations in code blocks and the window that explains them (js/op-tips.js). */
+pre .op { text-decoration: underline dotted #94a3b8; text-underline-offset: 3px; cursor: help; border-radius: 3px; }
+pre .op:hover, pre .op.on { background: var(--step-bg); }
+pre .op:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
+.op-tip {
+  position: absolute; z-index: 20; box-sizing: border-box; max-width: min(300px, calc(100vw - 24px));
+  padding: 8px 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14);
+  font: 14px/1.5 Inter, system-ui, sans-serif; color: var(--text);
+}
 /* Circled step numbers, as \step in the paper. */
 .sn {
   display: inline-grid; place-items: center;
