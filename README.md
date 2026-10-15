@@ -52,12 +52,14 @@ repository access and run:
 
 ```sh
 python3 scripts/update-verification-results.py
-node --test tests/results-model.test.mjs
+node --test tests/*.test.mjs
+python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
 The updater resolves `main` to a commit, validates the downloaded JSON, and saves the original
-bytes plus provenance in `data/`. Use `--ref <commit>` for a specific source revision. Review and
-commit both data files through a PR; merging publishes the updated snapshot. This is a dated
+bytes plus provenance in `data/`. It also imports the synchronization-removal columns from
+`examples/index.md` at the same publishing revision into `sync-removal-results.json`. Use `--ref <commit>` for a specific source revision. Review and
+commit all three data files through a PR; merging publishes the updated snapshot. This is a dated
 snapshot, not a live feed. Preserve source follow-up notes and workspace caveats when updating.
 File links point to the publishing revision, while recorded SHA-256 hashes identify analyzed
 files; local source changes mean those may differ.
@@ -66,6 +68,26 @@ Preview checks: filter by library and verdict, search a diagnostic, sort by runt
 pages, open a conditional record, close it with Escape, and reload its permalink. Verify the
 empty state and mobile table scrolling. The page shows an error and keeps the JSON download
 available if data loading or validation fails.
+
+### Synchronization removal and kernel performance
+
+The database joins historical synchronization experiments to verification records by exact
+kernel identifier. The **Recorded inputs / Larger-input study** selector switches both the
+removal count and B200 timing columns. Use **Only kernels with removal counts**, or sort by
+removable sites and runtime reduction. Details preserve full input-scope notes and experiment
+issue links. Summary totals describe the filtered rows; counts and timings may cover different
+kernel sets.
+
+Removal counts refer to candidate sites removable together under the experiment's configuration,
+not every dynamic synchronization instruction or every possible input. The study is separate from
+the latest verification run. Some larger-input entries are explicitly marked as original-shape
+rechecks. Unknown values, unrun experiments, measured zero, and no measurable performance change
+remain distinct. Runtime percentages use the source-reported values, not ratios inferred from
+rounded timings. Positive source runtime changes are displayed as **higher** (slower).
+
+`scripts/sync_removal.py` rejects changed table formats, mismatched candidates, and unknown kernel
+identifiers rather than silently dropping measurements. The UI keeps verification results usable
+if the optional study file cannot load. Source study provenance is stored with the imported data.
 
 ## Files
 
@@ -76,7 +98,8 @@ available if data loading or validation fails.
 - `css/site.css`: shared navigation, homepage, and blog layouts.
 - `results/index.html`, `css/results.css`: verification database page and responsive layout.
 - `js/results.mjs`, `js/results-model.mjs`: database UI, filtering, and data validation.
-- `data/`: published verification snapshot and source provenance.
+- `data/`: verification snapshot, source provenance, and synchronization-removal study.
+- `js/sync-removal.mjs`, `scripts/sync_removal.py`: study validation, display semantics, and import.
 - `scripts/update-verification-results.py`: authenticated, validated snapshot refresh.
 - `tests/results-model.test.mjs`: snapshot integrity and query behavior checks.
 - `js/anim.js`: figure helpers and animation runtime.

@@ -1,3 +1,5 @@
+import { runtimeReduction } from './sync-removal.mjs';
+
 export const VERDICTS = {
   verified: { label: 'Verified', group: 'verified' },
   potential_race: { label: 'Potential race', group: 'findings' },
@@ -62,9 +64,10 @@ export function summarize(rows) {
   return stats;
 }
 
-export function filterRows(rows, { search = '', library = '', verdict = '', group = '', sort = 'name' } = {}) {
+export function filterRows(rows, { search = '', library = '', verdict = '', group = '', sort = 'name', scenario = 'recorded', withStudy = false } = {}) {
   const terms = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
   const filtered = rows.filter(row => {
+    if (withStudy && row.syncStudy?.[scenario]?.removal.status !== 'measured') return false;
     if (library && libraryOf(row.name) !== library) return false;
     if (verdict && row.result !== verdict) return false;
     if (group && (VERDICTS[row.result]?.group || 'other') !== group) return false;
@@ -77,6 +80,11 @@ export function filterRows(rows, { search = '', library = '', verdict = '', grou
     let order = 0;
     if (sort === 'time') order = numeric(a, b, 'elapsed_seconds');
     if (sort === 'memory') order = numeric(a, b, 'native_peak_rss_mib');
+    if (sort === 'removable' || sort === 'improvement') {
+      const metric = row => sort === 'removable' ? row.syncStudy?.[scenario]?.removal.removable : runtimeReduction(row.syncStudy?.[scenario]?.performance);
+      const left = metric(a), right = metric(b);
+      order = (Number.isFinite(right) ? right : -Infinity) - (Number.isFinite(left) ? left : -Infinity);
+    }
     if (sort === 'result') order = a.result.localeCompare(b.result);
     return order || a.name.localeCompare(b.name);
   });

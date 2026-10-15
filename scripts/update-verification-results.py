@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+from sync_removal import parse_sync_study
 
 REPOSITORY = 'wmdi/wasp_verification'
 SOURCE_PATH = 'docs/kernel-verification-results.json'
@@ -22,7 +23,8 @@ def api(path):
 
 def refresh(ref):
     # Resolve once, then fetch that immutable revision rather than a moving branch.
-    revision = api('repos/{}/commits/{}'.format(REPOSITORY, ref))['sha']
+    commit = api('repos/{}/commits/{}'.format(REPOSITORY, ref))
+    revision = commit['sha']
     if not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('Invalid source commit')
     content = api('repos/{}/contents/{}?ref={}'.format(REPOSITORY, SOURCE_PATH, revision))
@@ -55,15 +57,24 @@ def refresh(ref):
         'sha256': hashlib.sha256(raw).hexdigest(),
         'retrieved_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
     }
+    index = api('repos/{}/contents/examples/index.md?ref={}'.format(REPOSITORY, revision))
+    if index.get('encoding') != 'base64':
+        raise ValueError('Unsupported synchronization index encoding')
+    study = parse_sync_study(base64.b64decode(index['content']), {
+        'repository': REPOSITORY, 'revision': revision,
+        'published_at': commit['commit']['committer']['date'],
+    }, {row['name'] for row in rows})
     directory = ROOT / 'data'
     directory.mkdir(exist_ok=True)
     for name, payload in [('kernel-verification-results.json', raw),
-                          ('verification-source.json', (json.dumps(metadata, indent=2) + '\n').encode())]:
+                          ('verification-source.json', (json.dumps(metadata, indent=2) + '\n').encode()),
+                          ('sync-removal-results.json', (json.dumps(study, indent=2, ensure_ascii=False) + '\n').encode())]:
         with tempfile.NamedTemporaryFile(dir=str(directory), delete=False) as temp:
             temp.write(payload)
             pending = Path(temp.name)
         pending.replace(directory / name)
     print('Updated {} records from {} at {}'.format(len(rows), REPOSITORY, revision))
+    print('Imported {} synchronization study records.'.format(len(study['results'])))
     print('Snapshot: {}. Review the data diff before committing and publishing.'.format(data['snapshot_date']))
 
 

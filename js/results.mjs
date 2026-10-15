@@ -1,9 +1,11 @@
 import { VERDICTS, libraryOf, displayName, validateSnapshot, summarize, filterRows, resultLabel, formatSeconds, formatMemory } from './results-model.mjs';
 
+import { SCENARIOS, validateStudy, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
+
 const $ = id => document.getElementById(id);
 const PAGE_SIZE = 25;
 const repository = 'https://github.com/wmdi/wasp_verification';
-let snapshot, source, stats, rows, state, openedKernel = null;
+let snapshot, source, stats, rows, study, studyAvailable = false, state, openedKernel = null;
 const number = value => Number.isFinite(value) ? value.toLocaleString('en-US') : 'Not recorded';
 const el = (tag, className = '', text = '') => {
   const node = document.createElement(tag);
@@ -43,7 +45,9 @@ function readState() {
     library: libraries.has(params.get('library')) ? params.get('library') : '',
     verdict: stats.counts[params.get('result')] ? params.get('result') : '',
     group: ['verified', 'findings', 'inconclusive', 'other'].includes(group) ? group : '',
-    sort: ['name', 'time', 'memory', 'result'].includes(params.get('sort')) ? params.get('sort') : 'name',
+    sort: ['name', 'time', 'memory', 'result', 'removable', 'improvement'].includes(params.get('sort')) ? params.get('sort') : 'name',
+    scenario: params.get('input') === 'larger' ? 'larger' : 'recorded',
+    withStudy: studyAvailable && params.get('study') === 'available',
     page: Math.max(1, Math.floor(Number(params.get('page'))) || 1),
   };
 }
@@ -51,7 +55,7 @@ function pageURL(kernel = null) {
   const url = new URL(location.href);
   url.search = '';
   url.hash = '';
-  for (const [param, value] of Object.entries({ q: state.search, library: state.library, result: state.verdict, group: state.group, sort: state.sort !== 'name' ? state.sort : '', page: state.page > 1 ? state.page : '', kernel })) {
+  for (const [param, value] of Object.entries({ q: state.search, library: state.library, result: state.verdict, group: state.group, input: state.scenario === 'larger' ? 'larger' : '', study: state.withStudy ? 'available' : '', sort: state.sort !== 'name' ? state.sort : '', page: state.page > 1 ? state.page : '', kernel })) {
     if (value) url.searchParams.set(param, value);
   }
   return url;
@@ -62,7 +66,7 @@ function setFilter(changes) {
   render();
   syncURL();
 }
-function resetFilters() { setFilter({ search: '', library: '', verdict: '', group: '', sort: 'name' }); }
+function resetFilters() { setFilter({ search: '', library: '', verdict: '', group: '', sort: 'name', withStudy: false }); }
 
 function renderOverview() {
   const cards = [
@@ -108,6 +112,47 @@ function renderOverview() {
   }
 }
 
+
+function renderStudySummary(filtered) {
+  $('with-study').checked = state.withStudy;
+  document.querySelectorAll('[data-scenario]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.scenario === state.scenario)));
+  const summary = $('study-summary');
+  summary.replaceChildren();
+  if (!studyAvailable) {
+    appendText(summary, 'Synchronization study unavailable. Reload to try again; verification results remain available.');
+    return;
+  }
+  const totals = summarizeStudy(filtered, state.scenario);
+  const counts = el('p');
+  counts.append(el('strong', '', `${number(totals.removable)} of ${number(totals.candidates)}`), document.createTextNode(` candidate sites removable · ${totals.tested} ${totals.tested === 1 ? 'kernel' : 'kernels'} with counts`));
+  const timing = el('p');
+  timing.append(el('strong', '', `${totals.faster} lower · ${totals.slower} higher · ${totals.unchanged} unchanged`), document.createTextNode(` kernel runtimes · ${totals.timed} timed ${totals.timed === 1 ? 'kernel' : 'kernels'}`));
+  summary.append(counts, timing);
+  $('study-scope').textContent = state.scenario === 'larger'
+    ? 'For the filtered kernels · Larger-input results include fixed-shape rechecks. Counts and timings can cover different kernel sets; do not reuse recorded-input removals at larger shapes.'
+    : 'For the filtered kernels · Counts and timings can cover different kernel sets. Recorded-input removals may become unsafe when the input shape changes.';
+}
+function studyCells(row, tr) {
+  const sample = row.syncStudy?.[state.scenario];
+  const removalCell = el('td', 'study-cell');
+  const perfCell = el('td', 'study-cell');
+  if (!studyAvailable) {
+    removalCell.append(el('span', 'metric-missing', 'Unavailable'));
+    perfCell.append(el('span', 'metric-missing', 'Unavailable'));
+  } else {
+    removalCell.append(el('span', sample?.removal.status === 'measured' ? 'removal-count' : 'metric-missing', removalLabel(sample?.removal)));
+    if (sample?.removal.status === 'measured') removalCell.append(el('small', '', 'candidate sites'));
+    const reduction = runtimeReduction(sample?.performance);
+    perfCell.append(el('span', reduction === null ? 'metric-missing' : reduction > 0 ? 'perf-lower' : reduction < 0 ? 'perf-higher' : 'perf-unchanged', performanceLabel(sample?.performance)));
+    if (reduction !== null) {
+      const p = sample.performance;
+      perfCell.append(el('small', '', `${p.original_us.toFixed(2)} → ${p.reduced_us.toFixed(2)} µs`));
+    }
+    if (sample?.rechecked_at_recorded_input) removalCell.append(el('small', 'scope-tag', 'Original-shape recheck'));
+  }
+  tr.append(removalCell, perfCell);
+}
+
 function render() {
   $('search').value = state.search;
   $('library').value = state.library;
@@ -118,6 +163,7 @@ function render() {
   });
   document.querySelectorAll('.legend-item').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.verdict === state.verdict)));
   const filtered = filterRows(rows, state);
+  renderStudySummary(filtered);
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   state.page = Math.min(state.page, pages);
   const offset = (state.page - 1) * PAGE_SIZE;
@@ -148,6 +194,7 @@ function render() {
       td.append(check(row.checks[key]));
       tr.append(td);
     }
+    studyCells(row, tr);
     tr.append(el('td', 'numeric', formatSeconds(row.elapsed_seconds)));
     const arrow = el('td', 'row-arrow', '↗');
     arrow.setAttribute('aria-hidden', 'true');
@@ -177,6 +224,39 @@ function fact(parent, title, value) {
   item.append(el('dt', '', title), el('dd', '', value));
   parent.append(item);
 }
+
+function studyDetail(body, row) {
+  body.append(el('h3', '', 'Synchronization removal & kernel performance'));
+  if (!studyAvailable || !row.syncStudy) {
+    appendText(body, studyAvailable ? 'No synchronization-removal experiment is recorded for this kernel. This does not mean that zero sites are removable.' : 'The synchronization study could not be loaded.', 'detail-note');
+    return;
+  }
+  appendText(body, 'Historical, input-specific experiments. These counts and B200 timings are separate from the verification run above; changing the input shape can invalidate a removal.', 'detail-note');
+  appendText(body, `Static synchronization statements in the analyzed entry: ${row.syncStudy.static_sync_instructions}.`);
+  for (const [key, title] of Object.entries(SCENARIOS)) {
+    const sample = row.syncStudy[key];
+    const section = el('section', 'study-detail-scenario');
+    section.append(el('h4', '', title + (sample.rechecked_at_recorded_input ? ' · original-shape recheck' : '')));
+    const facts = el('dl', 'record-facts');
+    fact(facts, 'Removable / executed candidate sites', removalLabel(sample.removal));
+    fact(facts, 'B200 kernel runtime', performanceLabel(sample.performance));
+    if (runtimeReduction(sample.performance) !== null) {
+      fact(facts, 'Original kernel', `${sample.performance.original_us.toFixed(2)} µs`);
+      fact(facts, 'Reduced kernel', `${sample.performance.reduced_us.toFixed(2)} µs`);
+    }
+    section.append(facts);
+    if (sample.removal.note) appendText(section, sample.removal.note.replace(/\[#\d+\]\(https:\/\/github\.com\/wmdi\/wasp_verification\/issues\/\d+\)/g, '').replace(/\(\s*,?\s*\)/g, '').trim(), 'study-source-note');
+    if (sample.performance.note) appendText(section, `Reported timing: ${sample.performance.note}`, 'study-source-note');
+    body.append(section);
+  }
+  const references = el('p', 'study-references');
+  for (const reference of row.syncStudy.references) {
+    if (/^https:\/\/github\.com\/wmdi\/wasp_verification\/issues\/\d+$/.test(reference)) references.append(link(`Experiment #${reference.split('/').pop()} ↗`, reference));
+  }
+  body.append(references);
+  rawSection(body, 'Complete synchronization study record', row.syncStudy);
+}
+
 function showDetail(row) {
   openedKernel = row.name;
   const body = $('detail-body');
@@ -203,6 +283,7 @@ function showDetail(row) {
   fact(facts, 'Run identifier (UTC)', row.run || 'Not recorded');
   fact(facts, 'Snapshot', dateLabel(snapshot.snapshot_date));
   body.append(facts);
+  studyDetail(body, row);
   if (row.recorded_followup?.analysis || row.recorded_followup?.upstream_references) {
     body.append(el('h3', '', 'Recorded follow-up'));
     if (row.recorded_followup.analysis) appendText(body, row.recorded_followup.analysis.replace(/<br\s*\/?\s*>/gi, '\n\n'), 'followup');
@@ -252,7 +333,8 @@ function showDetail(row) {
     files.append(item);
   }
   body.append(files);
-  rawSection(body, 'Complete JSON record', row);
+  const { syncStudy, ...verificationRecord } = row;
+  rawSection(body, 'Complete JSON record', verificationRecord);
   const dialog = $('kernel-detail');
   if (!dialog.open) dialog.showModal();
   dialog.scrollTop = 0;
@@ -280,7 +362,20 @@ async function init() {
     snapshot = validateSnapshot(data);
     source = provenance;
     if (!/^[0-9a-f]{40}$/.test(source.revision) || !/^[0-9a-f]{64}$/.test(source.sha256)) throw new Error('Invalid source provenance.');
+
     rows = snapshot.results;
+    try {
+      const response = await fetch('../data/sync-removal-results.json');
+      if (!response.ok) throw new Error('Synchronization study unavailable.');
+      study = validateStudy(await response.json(), new Set(rows.map(row => row.name)));
+      const studies = new Map(study.results.map(row => [row.name, row]));
+      rows = rows.map(row => ({ ...row, syncStudy: studies.get(row.name) }));
+      studyAvailable = true;
+      $('study-provenance').append(document.createTextNode('Experiment index: '), link(`${study.source.repository} @ ${study.source.revision.slice(0, 7)}`, `${repository}/blob/${study.source.revision}/examples/index.md`), document.createTextNode(`. Published ${study.source.published_at.slice(0, 10)}. Source repository access is required.`));
+    } catch (error) {
+      $('with-study').disabled = true;
+      console.warn('Synchronization study:', error);
+    }
     stats = summarize(rows);
     state = readState();
     renderOverview();
@@ -291,6 +386,8 @@ async function init() {
     $('explorer').hidden = false;
     const selected = rows.find(row => row.name === new URLSearchParams(location.search).get('kernel'));
     if (selected) showDetail(selected);
+    document.querySelectorAll('[data-scenario]').forEach(button => button.addEventListener('click', () => setFilter({ scenario: button.dataset.scenario })));
+    $('with-study').addEventListener('change', () => setFilter({ withStudy: $('with-study').checked }));
     $('filters').addEventListener('submit', event => event.preventDefault());
     $('search').addEventListener('input', () => setFilter({ search: $('search').value }));
     $('library').addEventListener('change', () => setFilter({ library: $('library').value }));
