@@ -8,22 +8,26 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
 <body class="release-page">
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar"><div class="in">
-  <a class="brand" href="./" aria-label="SentryWard home">SentryWard</a>
+  <a class="brand" href="./" aria-label="SentryWard home"><img src="assets/sentryward-wordmark.svg" width="113" height="22" alt="SentryWard"></a>
   <nav class="topnav" aria-label="Main navigation"><a href="#usage">Usage</a><a href="#properties">Properties</a><a href="blog/">Blog</a></nav>
 </div></header>
 
 <main id="main" class="release">
   <section class="hero" aria-labelledby="release-title">
-    <p class="eyebrow">Formal verification &middot; NVIDIA Blackwell</p>
-    <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
-    <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
-    <div class="actions"><a class="button primary" href="#get-started">Get started <span aria-hidden="true">&rarr;</span></a><a class="button" href="blog/verifying-warp-specialized-gpu-kernels/">How it works</a></div>
+    <div class="hero-text">
+      <p class="eyebrow">Formal verification &middot; NVIDIA Blackwell</p>
+      <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
+      <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
+      <div class="actions"><a class="button primary" href="#get-started">Get started <span aria-hidden="true">&rarr;</span></a><a class="button" href="blog/verifying-warp-specialized-gpu-kernels/">How it works</a></div>
+    </div>
+    <img class="hero-logo" src="assets/sentryward-mark.svg" width="340" height="222" alt="">
   </section>
 
   <section class="release-section" id="usage" aria-labelledby="usage-title">

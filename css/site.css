@@ -1,12 +1,15 @@
 /* Shared navigation, product overview, and blog layouts. Figure styles stay in style.css. */
 :where(a, button, summary, pre):focus-visible { outline: 2px solid var(--link); outline-offset: 4px; }
 [id] { scroll-margin-top: 24px; }
+.brand img { display: block; width: auto; height: 22px; }
 .topnav a { color: var(--text-2); }
 .topnav a[aria-current="page"] { color: var(--hb); font-weight: 600; }
 .skip-link { position: absolute; top: -100px; left: 16px; z-index: 10; background: #fff; padding: 10px 16px; border: 1px solid var(--rule); }
 .skip-link:focus { top: 10px; }
 .release { max-width: 1008px; margin: 0 auto; padding: 0 24px 56px; }
-.hero { padding: 56px 0 44px; }
+.hero { display: flex; align-items: center; gap: 48px; padding: 56px 0 44px; }
+.hero-text { flex: 1 1 0; min-width: 0; }
+.hero-logo { flex: none; width: min(340px, 32vw); height: auto; }
 .eyebrow { color: var(--hb); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 16px; }
 .hero h1 { max-width: 800px; font-size: clamp(34px, 4.5vw, 50px); line-height: 1.12; letter-spacing: -0.035em; margin: 0 0 24px; text-wrap: balance; }
 .lead { max-width: 780px; font-size: 20px; line-height: 1.65; color: var(--text-2); margin: 0; }
@@ -57,7 +60,8 @@
 .post-listing .post-summary { color: var(--text-2); }
 .post-listing .post-meta { font-size: 14px; color: var(--muted); }
 @media (max-width: 760px) {
-  .hero { padding: 36px 0; }
+  .hero { flex-direction: column; align-items: stretch; gap: 0; padding: 36px 0; }
+  .hero-logo { order: -1; align-self: flex-start; width: 190px; margin: 0 0 26px; }
   .release { padding: 0 20px 40px; }
   .lead { font-size: 18px; }
   .release-section { padding-top: 26px; margin-bottom: 32px; }
@@ -71,7 +75,7 @@
 @media (max-width: 480px) {
   .topbar .in { padding: 15px 18px; flex-wrap: wrap; gap: 12px; }
   .topnav { font-size: 13px; gap: 14px; }
-  .brand { font-size: 19px; }
+  .brand img { height: 19px; }
   .install { font-size: 14px; padding: 18px 16px; }
   .footer-in nav { gap: 10px 16px; }
 }
