@@ -3,28 +3,28 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SentryWard — Automatic Formal Verification of GPU Kernels</title>
+<title>SentryWard — Formal Verification of GPU Kernels in PTX.</title>
 <meta name="description" content="Bring formal verification into agent-driven GPU kernel development. SentryWard checks synchronization, memory safety, and reference equivalence for NVIDIA Blackwell PTX kernels.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/site.css?v=20261015">
 </head>
 <body class="release-page">
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar"><div class="in">
   <a class="brand" href="./" aria-label="SentryWard home"><img src="assets/sentryward-wordmark.svg" width="113" height="22" alt="SentryWard"></a>
-  <nav class="topnav" aria-label="Main navigation"><a href="./" aria-current="page">Overview</a><a href="results/">Results</a><a href="blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav>
+  <nav class="topnav" aria-label="Main navigation"><a href="blog/">Tech-blog</a><a href="https://github.com/gpu-verifier/sentryward">Github</a><a href="results/">Results</a></nav>
 </div></header>
 
 <main id="main" class="release">
   <section class="hero" aria-labelledby="release-title">
     <div class="hero-text">
-      <h1 id="release-title">Automatically verify GPU kernels in PTX.</h1>
+      <h1 id="release-title">Formal Verification of GPU Kernels in PTX.</h1>
       <p class="lead">SentryWard automatically proves that a GPU kernel synchronizes correctly and is free of data races across every execution schedule. Add a PyTorch reference to prove that it computes the same function. Built for warp-specialized kernels on NVIDIA Blackwell GPUs.</p>
-      <div class="actions"><a href="#get-started">Installation</a><a href="blog/verifying-warp-specialized-gpu-kernels/">Technical article</a><a href="results/">Verification results</a></div>
+      <div class="actions"><a href="#get-started">Installation</a><a href="blog/">Technical article</a><a href="results/">Verification results</a></div>
     </div>
     <img class="hero-logo" src="assets/sentryward-mark.svg" width="340" height="222" alt="">
   </section>
@@ -163,9 +163,9 @@ print(result["result"], result["checks"])</code></pre>
       <p class="scope-note">Install <code>sentryward[reference]</code> when supplying a PyTorch reference.</p>
     </details>
     <p class="reading scope-note"><a href="https://github.com/gpu-verifier/sentryward/blob/main/README.md#getting-started">Full usage and options</a>, including time and memory limits.</p>
-    <p class="read-next"><a href="blog/verifying-warp-specialized-gpu-kernels/">Read the technical post for the algorithms, examples, and results <span aria-hidden="true">&rarr;</span></a></p>
+    <p class="read-next"><a href="blog/">Read the technical post for the algorithms, examples, and results <span aria-hidden="true">&rarr;</span></a></p>
   </section>
 </main>
-<footer><div class="footer-in"><span>SentryWard</span><nav aria-label="Footer navigation"><a href="results/">Results</a><a href="blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav></div></footer>
+<footer><div class="footer-in"><span>SentryWard</span><nav aria-label="Footer navigation"><a href="blog/">Tech-blog</a><a href="https://github.com/gpu-verifier/sentryward">Github</a><a href="results/">Results</a></nav></div></footer>
 </body>
 </html>

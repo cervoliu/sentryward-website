@@ -33,8 +33,7 @@ From the repository root:
 python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
-Open [the homepage](http://127.0.0.1:8765/), [the blog index](http://127.0.0.1:8765/blog/),
-[the technical article](http://127.0.0.1:8765/blog/verifying-warp-specialized-gpu-kernels/),
+Open [the homepage](http://127.0.0.1:8765/), [the technical blog](http://127.0.0.1:8765/blog/),
 or [the verification database](http://127.0.0.1:8765/results/).
 
 ## Verification database
@@ -103,8 +102,8 @@ if the optional study file cannot load. Source study provenance is stored with t
 ## Files
 
 - `index.html`: project overview and usage.
-- `blog/index.html`: article listing.
-- `blog/verifying-warp-specialized-gpu-kernels/index.html`: technical article.
+- `blog/index.html`: technical article and author links.
+- `blog/verifying-warp-specialized-gpu-kernels/index.html`: legacy redirect to `/blog/`, preserving query strings and section anchors.
 - `css/style.css`: article and figure styles.
 - `css/site.css`: shared navigation, homepage, and blog layouts.
 - `results/index.html`, `css/results.css`: verification database page and responsive layout.

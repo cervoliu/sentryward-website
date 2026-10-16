@@ -43,6 +43,9 @@
 .read-next { margin: 26px 0 0; font-size: 15px; }
 .footer-in { max-width: 960px; margin: 0 auto; display: flex; justify-content: space-between; gap: 20px; text-align: left; }
 .footer-in nav { display: flex; flex-wrap: wrap; gap: 20px; }
+.post-authors { display: flex; flex-wrap: wrap; gap: 6px 20px; list-style: none; padding: 0; margin: 18px 0 0; font-size: 15px; line-height: 1.6; }
+.post-authors li { margin: 0; }
+.post-authors a { white-space: nowrap; }
 .post-toc { border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 18px 0; margin: 28px 0; font-size: 14px; }
 .post-toc p { margin: 0 0 7px; font-weight: 600; color: var(--text-2); }
 .post-toc ol { margin: 0; padding-left: 1.3em; }
@@ -51,13 +54,6 @@
 .post-page .stepper-head .anim-step { min-width: 0; }
 .post-page figure.wide { --figure-width: min(1000px, calc(100vw - 32px)); width: var(--figure-width); margin-left: calc((100% - var(--figure-width)) / 2); transform: none; }
 .back-link { margin: 48px 0 0; padding-top: 20px; border-top: 1px solid var(--rule); }
-.blog-index { max-width: 900px; margin: 0 auto; padding: 44px 24px 80px; min-height: calc(100vh - 180px); }
-.blog-index h1 { margin: 0 0 16px; font-size: 32px; font-weight: 650; }
-.blog-index > p { max-width: 670px; color: var(--text-2); }
-.post-listing { border-top: 1px solid var(--rule); padding: 24px 0; margin-top: 28px; }
-.post-listing h2 { margin: 0 0 12px; font-size: 22px; font-weight: 600; }
-.post-listing h2 a { color: var(--text); }
-.post-listing .post-summary { color: var(--text-2); }
 /* Agent generation and verification workflows. */
 .workflow-input { margin: 24px 0 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 14px; }
 .workflow-input strong { margin-right: 12px; color: var(--text); }
@@ -105,7 +101,6 @@
   .io-column { padding: 20px; }
   .property-list > div { grid-template-columns: 1fr; gap: 5px; }
   .footer-in { flex-direction: column; }
-  .blog-index { padding-top: 36px; }
 }
 @media (max-width: 480px) {
   .topbar .in { padding: 15px 18px; flex-wrap: wrap; gap: 12px; }

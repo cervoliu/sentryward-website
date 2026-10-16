@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <link rel="stylesheet" href="../css/style.css">
-<link rel="stylesheet" href="../css/site.css">
+<link rel="stylesheet" href="../css/site.css?v=20261015">
 <link rel="stylesheet" href="../css/results.css">
 <script type="module" src="../js/results.mjs"></script>
 </head>
@@ -19,7 +19,7 @@
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="topbar"><div class="in">
   <a class="brand" href="../" aria-label="SentryWard home"><img src="../assets/sentryward-wordmark.svg" width="113" height="22" alt="SentryWard"></a>
-  <nav class="topnav" aria-label="Main navigation"><a href="../">Overview</a><a href="./" aria-current="page">Results</a><a href="../blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav>
+  <nav class="topnav" aria-label="Main navigation"><a href="../blog/">Tech-blog</a><a href="https://github.com/gpu-verifier/sentryward">Github</a><a href="./" aria-current="page">Results</a></nav>
 </div></header>
 <main id="main" class="database">
   <section class="database-hero" aria-labelledby="page-title">
@@ -65,7 +65,7 @@
   </section>
 
   <section class="data-notes" id="about-data" aria-labelledby="data-title">
-    <div><h2 id="data-title">About the data</h2><p>A verdict applies to the recorded input configuration and the verifier’s model. It is not a claim about every shape, execution environment, or version of a library.</p><a href="../blog/verifying-warp-specialized-gpu-kernels/#how-it-works">How verification works</a></div>
+    <div><h2 id="data-title">About the data</h2><p>A verdict applies to the recorded input configuration and the verifier’s model. It is not a claim about every shape, execution environment, or version of a library.</p><a href="../blog/#how-it-works">How verification works</a></div>
     <div class="notes-list">
       <details id="sync-methodology"><summary>Synchronization-removal methodology</summary><p>“Removable syncs” counts synchronization sites removed <strong>together</strong> while the reduced kernel still passed race-freedom verification, out of the executed candidate sites. This is not the dynamic instruction count or a maximum-removal guarantee. Fences and <code>griddepcontrol.wait</code> are excluded from the candidates.</p><p>Kernel timing is measured on an NVIDIA B200. “Faster” means a reduction in kernel runtime; “slower” means an increase. Percentages describe runtime changes relative to the original kernel, not throughput speedups. Percentages and timings are preserved as reported, even when a percentage differs from the ratio of the displayed timings. “No measurable change” is distinct from “Not reported” or “Not applicable.” Analysis time is the verifier’s runtime, not the kernel’s runtime.</p><p>The recorded-input study uses verifier revisions <code>a47ae4f</code> / <code>be4e9f3</code>; the larger-input study uses <code>f8339ff</code>. These experiments are separate from the current verification snapshot and may use different inputs or budgets. For larger inputs, sites necessary at the recorded input were not retried. Some cases launch only selected CTAs or clusters; fixed-shape cases were rechecked at their original input. Each record preserves these caveats.</p><p id="study-provenance"></p><p><a href="../data/sync-removal-results.json" download>Download synchronization study JSON</a></p></details>
       <details><summary>Verification outcomes</summary><p><strong>Verified</strong> records passed synchronization, memory, and reference-equivalence checks. <strong>Reported findings</strong> groups potential races, invalid lifecycles, and inconsistent synchronization; these are verifier findings, not necessarily reproduced hardware failures. <strong>Inconclusive</strong> groups unsupported analyses and time, memory, or analysis limits.</p><p>Per-check outcomes are preserved. “Not run” and “Incomplete” do not mean passed. The equivalence contract and definedness information are available in each record.</p></details>
@@ -74,7 +74,7 @@
     </div>
   </section>
 </main>
-<footer><div class="footer-in"><a href="../">SentryWard</a><nav aria-label="Footer navigation"><a href="./" aria-current="page">Results</a><a href="../blog/">Blog</a><a href="https://github.com/gpu-verifier/sentryward">GitHub</a></nav></div></footer>
+<footer><div class="footer-in"><a href="../">SentryWard</a><nav aria-label="Footer navigation"><a href="../blog/">Tech-blog</a><a href="https://github.com/gpu-verifier/sentryward">Github</a><a href="./" aria-current="page">Results</a></nav></div></footer>
 <dialog id="kernel-detail" aria-labelledby="detail-title">
   <div class="detail-topbar"><span>Kernel record</span><button id="close-detail" type="button" aria-label="Close kernel details">✕</button></div>
   <div class="detail-body" id="detail-body"></div>
