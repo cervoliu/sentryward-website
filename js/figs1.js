@@ -110,7 +110,7 @@
       { t: 2.2, label: '<b>1</b>&ensp;The producer’s <code>arrive.expect_tx</code> gives <code>full</code> its one arrival and announces 32 KB, the size of both tiles.' },
       { t: 4.6, label: '<b>2</b>&ensp;The producer starts both TMA copies.' },
       { t: 6.8, label: '<b>3</b>&ensp;Each copy reports its bytes to <code>full</code> when its data lands. Once all 32 KB have landed, phase 0 completes.' },
-      { t: 9.8, label: '<b>4</b>&ensp;The MMA issuer was waiting for phase 0 of <code>full</code>, so it proceeds only now, with both tiles in shared memory.' },
+      { t: 9.8, label: '<b>4</b>&ensp;The consumer was waiting for phase 0 of <code>full</code>, so it proceeds only now, with both tiles in shared memory.' },
       { t: 12.0, label: '<b>5</b>&ensp;It starts the multiplication <code>acc ← sA · sB</code> on the tensor core.' },
       { t: 14.4, label: '<b>6</b>&ensp;When the multiplication completes, the hardware arrives on <code>mma_done</code>, completing its phase 0.' },
       { t: 16.6, label: '<b>7</b>&ensp;Every thread was waiting for phase 0 of <code>mma_done</code>; now the epilogue starts.' },
@@ -153,7 +153,7 @@
           return r;
         }
         var prod = thread(1.6, 'producer', 'thread 0');
-        var mmai = thread(4.65, 'MMA issuer', 'thread 32');
+        var mmai = thread(4.65, 'consumer', 'thread 32');
         var epi = thread(10.05, 'epilogue', 'all 128 threads');
         var waitM = S.text(svg, X(4.65), Y(-0.25) + 0.45 * K + 13, 'waits for `full`', { fs: 11, cls: 'muted it' });
         var waitE = S.text(svg, X(10.05), Y(-0.25) + 0.45 * K + 13, 'waits for `mma_done`', { fs: 11, cls: 'muted it' });
@@ -264,8 +264,8 @@
   };
 
   // ---------- Figure 2: two schedules of the buggy kernel, whose epilogue does not wait ----------
-  // In the style of paper Fig. 7. The reader steps through the events with the previous and
-  // next buttons.
+  // In the style of paper Fig. 7. Like the animations, the steps advance on their own while the
+  // figure is on screen, loop, and pause on click; the previous and next buttons step by hand.
   S.figs['schedules'] = function (host) {
     // Each row: event, state of mma_done, note, row class, and the step at which it appears.
     var A = [
@@ -283,11 +283,11 @@
       ['Epilogue reads <code>acc</code>', '', '<b>already written</b>', 'good', 2]
     ];
     var LABELS = [
-      'In both executions, the copies land and complete phase 0 of <code>full</code>, as in the correct kernel, and the MMA issuer issues the MMA and the commit. Since the epilogue no longer waits, nothing holds back its read of <code>acc</code>.',
+      'In both executions, the copies land and complete phase 0 of <code>full</code>, as in the correct kernel, and the consumer issues the MMA and the commit. Since the epilogue no longer waits, nothing holds back its read of <code>acc</code>.',
       'In Schedule A, the epilogue reads <code>acc</code> right away, before the tensor core has written it. In Schedule B, the epilogue happens to be slow: the tensor core writes <code>acc</code> first, and the commit\u2019s arrival completes phase 0 of <code>mma_done</code>.',
       'In Schedule A, the tensor core writes <code>acc</code> only after the read, and phase 0 completes just the same. The barrier behaved the same way in both executions; only in Schedule B does the epilogue read the product.'
     ];
-    var wrap = S.div('anim static', host);
+    var wrap = S.div('anim', host);
     var head = S.div('stepper-head', wrap);
     var label = S.div('anim-step', head);
     function button(cls, title, d) {
@@ -337,13 +337,30 @@
       prev.disabled = k === 0;
       next.disabled = k === LABELS.length - 1;
     }
-    prev.addEventListener('click', function () { show(cur - 1); });
-    next.addEventListener('click', function () { show(cur + 1); });
+    // Each step stays long enough to read its label. Stepping by hand pauses the playback.
+    var STEP = 6500, timer = null, visible = false, paused = false;
+    function sync() {
+      wrap.classList.toggle('paused', paused);
+      clearTimeout(timer);
+      timer = null;
+      if (visible && !paused && !SW.reduced) timer = setTimeout(function () { show((cur + 1) % LABELS.length); sync(); }, STEP);
+    }
+    function step(k) { show(k); paused = true; sync(); }
+    S.div('anim-pp', wrap, '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/></svg>');
+    wrap.setAttribute('title', 'Click to pause or resume');
+    wrap.addEventListener('click', function () { paused = !paused; sync(); });
+    prev.addEventListener('click', function (e) { e.stopPropagation(); step(cur - 1); });
+    next.addEventListener('click', function (e) { e.stopPropagation(); step(cur + 1); });
     wrap.addEventListener('keydown', function (e) {
-      if (e.key === 'ArrowLeft') { show(cur - 1); e.preventDefault(); }
-      if (e.key === 'ArrowRight') { show(cur + 1); e.preventDefault(); }
+      if (e.key === 'ArrowLeft') { step(cur - 1); e.preventDefault(); }
+      if (e.key === 'ArrowRight') { step(cur + 1); e.preventDefault(); }
     });
     show(SW.reduced ? LABELS.length - 1 : 0);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (e) { visible = e.isIntersecting && e.intersectionRatio > 0.3; sync(); });
+      }, { threshold: [0, 0.3, 0.6] }).observe(wrap);
+    } else { visible = true; sync(); }
   };
 
   // ---------- Figure 3: how SentryWard verifies a kernel (paper Fig. 4), static ----------

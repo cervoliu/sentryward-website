@@ -52,6 +52,8 @@ p { margin: 0 0 18px; }
 .caveat b { color: var(--text); }
 ul, ol { margin: 0 0 18px; padding-left: 1.4em; }
 li { margin: 5px 0; }
+.refs { color: var(--text-2); font-size: 15px; line-height: 1.6; }
+.refs li { margin: 8px 0; }
 b, strong { font-weight: 650; }
 /* position: relative keeps KaTeX's hidden MathML inside scrolling boxes on narrow screens */
 .katex { font-size: 1.12em; position: relative; }
@@ -99,6 +101,10 @@ pre .op:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 figure { margin: 36px 0; }
 figure.wide { width: min(1000px, calc(100vw - 32px)); margin-left: 50%; transform: translateX(-50%); }
 figcaption { color: var(--muted); font-size: 15px; line-height: 1.55; text-align: center; margin: 12px auto 0; max-width: 768px; }
+/* A code block with a caption */
+figure.listing { margin: 0 0 22px; }
+figure.listing pre { margin: 0; }
+figure.listing figcaption { margin-top: 8px; }
 .anim { position: relative; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .anim.static { cursor: default; }
 .anim-step {
