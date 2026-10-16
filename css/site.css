@@ -70,9 +70,9 @@
 .workflow-diagram { min-width: 0; grid-column: 2; grid-row: 1; }
 .workflow-automatic .workflow-body { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
 .workflow-automatic .workflow-diagram { grid-column: 1; }
-.workflow-notes { grid-column: 1; grid-row: 1; padding: 4px 0 0; margin: 0; list-style: none; font-size: 12px; line-height: 1.55; }
+.workflow-notes { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 24px; align-self: stretch; grid-column: 1; grid-row: 1; padding: 4px 0 0; margin: 0; list-style: none; font-size: 12px; line-height: 1.55; }
 .workflow-automatic .workflow-notes { grid-column: 2; }
-.workflow-notes li { position: relative; margin: 0 0 24px; padding-left: 22px; }
+.workflow-notes li { position: relative; margin: 0; padding-left: 22px; }
 .workflow-note-icon { position: absolute; top: 2px; left: 0; width: 16px; height: 16px; fill: none; stroke: var(--workflow-accent); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .workflow-notes strong { display: block; color: var(--workflow-accent); font-weight: 600; margin-bottom: 3px; font-size: 13px; }
 .workflow-notes span { display: block; color: var(--text-2); }
@@ -99,15 +99,11 @@
   .workflow-comparison { gap: 24px; }
   .workflow-body, .workflow-automatic .workflow-body { grid-template-columns: 1fr; gap: 10px; }
   .workflow-diagram, .workflow-automatic .workflow-diagram { grid-column: 1; grid-row: 1; width: min(100%, 220px); justify-self: center; }
-  .workflow-notes, .workflow-automatic .workflow-notes { grid-column: 1; grid-row: 2; }
-  .workflow-notes li { margin-bottom: 14px; }
+  .workflow-notes, .workflow-automatic .workflow-notes { grid-column: 1; grid-row: 2; align-self: start; grid-template-rows: repeat(3, minmax(80px, auto)); gap: 14px; }
 }
 @media (max-width: 540px) {
   .workflow-comparison { grid-template-columns: 1fr; gap: 24px; }
-  .workflow-notes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
-}
-@media (max-width: 360px) {
-  .workflow-notes { grid-template-columns: 1fr; }
+  .workflow-notes, .workflow-automatic .workflow-notes { grid-template-rows: none; gap: 18px; }
 }
 
 @media (max-width: 760px) {
