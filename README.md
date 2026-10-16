@@ -34,7 +34,7 @@ python3 -m http.server 8765 --bind 127.0.0.1
 ```
 
 Open [the homepage](http://127.0.0.1:8765/), [the technical blog](http://127.0.0.1:8765/blog/),
-or [the verification database](http://127.0.0.1:8765/results/).
+[the interactive demo](http://127.0.0.1:8765/demo/), or [the verification database](http://127.0.0.1:8765/results/).
 
 ## Verification database
 
@@ -102,19 +102,22 @@ files of a CUTLASS GEMM from SentryWard's examples, verified against its PyTorch
 tabs and numbered notes connect the PTX, input configuration, reference, binding, and verification
 output; the PTX tab shows the start and end of the file and links to the full file.
 
-The browser playground is no longer part of the homepage. Its earlier WebAssembly engine,
-fixtures, build tooling, and service worker remain in the repository, but the homepage does not
-load the engine or register the service worker.
+The interactive demo, `/demo/`, is linked from the navigation and from “How SentryWard works”. It
+runs the WebAssembly engine in `js/sim/` (SentryWard 0.1.0, synchronization and memory checks), live,
+on the same CUTLASS GEMM and on a TileLang GEMM with a race; visitors can also check their own PTX
+with its input.json. It registers `sw.js` when Run first needs threads; the worker makes the demo
+page cross-origin isolated.
 
 ## Files
 
 - `index.html`: project overview and usage.
 - `js/home.mjs`, `js/examples.mjs`, `css/home.css`: homepage video styling and annotated example files.
-- `js/sim/`: retained browser engine assets: `engine.js` loads the WebAssembly engine and mirrors `sentryward.verify()`,
+- `demo/index.html`, `js/demo.mjs`, `css/demo.css`: the interactive demo; its recorded runs are `RUNS` in `js/examples.mjs`.
+- `js/sim/`: browser engine assets: `engine.js` loads the WebAssembly engine and mirrors `sentryward.verify()`,
   `worker.js` runs it, `results.js` applies the public result contract, `examples/` holds the live examples, and
   `engine/` holds the build output and its licenses (`NOTICE.txt`).
 - `scripts/engine/`: engine build script, the patch it applies to the sdist, and the SHA-256 shim that replaces OpenSSL.
-- `sw.js`: retained cross-origin isolation worker for the former playground.
+- `sw.js`: cross-origin isolation worker for the demo page.
 - `media/`: the overview film, its subtitles, and its poster.
 - `blog/index.html`: technical article and author links.
 - `blog/verifying-warp-specialized-gpu-kernels/index.html`: legacy redirect to `/blog/`, preserving query strings and section anchors.
