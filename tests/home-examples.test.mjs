@@ -10,7 +10,17 @@ const shown = lines => lines.filter(([n, text]) => n != null && !text.includes('
 test('the playground shows the lines of the PTX it runs', () => {
   for (const [n, text] of shown(RUNS['mml-280'].ptx)) assert.equal(text, old[n - 1], `PyTorch 2.8.0, line ${n}`);
   for (const [n, text] of shown(RUNS['mml-fixed'].ptx)) assert.equal(text, fixed[n - 1], `with the barrier, line ${n}`);
-  for (const [n, text] of shown(FILES.ptx)) assert.equal(text, fixed[n - 1], `annotated kernel, line ${n}`);
+});
+
+// The demo's PTX comes from gpu-verifier/sentryward, not this repository: check its line numbering.
+test('the demo shows PTX lines in file order, with a gap wherever lines are omitted', () => {
+  let last = 0;
+  FILES.ptx.forEach(([n, text], i) => {
+    if (n == null) return assert.equal(text, '…', `row ${i}`);
+    assert.ok(n > last, `line ${n} after line ${last}`);
+    if (n !== last + 1) assert.equal(FILES.ptx[i - 1]?.[0], null, `a gap before line ${n}`);
+    last = n;
+  });
 });
 
 test('the marks are the racing write and read, and the barrier between them', () => {

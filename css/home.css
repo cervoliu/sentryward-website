@@ -33,9 +33,9 @@
 .lp-ftabs button[aria-selected="true"] b { color: var(--hb); }
 .lp-fv { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); height: 540px; }
 .lp-code { position: relative; margin: 0; padding: 12px 0 16px; overflow: auto; border-right: 1px solid var(--rule); border-radius: 0; background: #fff; color: var(--text); font: 14.5px/1.6 Inconsolata, ui-monospace, Menlo, monospace; tab-size: 4; }
-.lp-code .l { position: relative; display: block; padding: 0 18px 0 60px; white-space: pre; transition: background 0.2s; }
+.lp-code .l { position: relative; display: block; padding: 0 18px 0 70px; white-space: pre; transition: background 0.2s; }
 .lp-code .l.hl { background: var(--step-bg); }
-.lp-code .n { position: absolute; left: 0; width: 46px; color: #94a3b8; text-align: right; user-select: none; }
+.lp-code .n { position: absolute; left: 0; width: 56px; color: #94a3b8; text-align: right; user-select: none; }
 .lp-code .mk { all: unset; cursor: pointer; position: absolute; left: 5px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); border-radius: 50%; background: var(--text-2); color: #fff; font: 600 10px/16px Inter, sans-serif; text-align: center; }
 .lp-code .l.hl .mk { background: var(--hb); }
 .lp-fnotes { margin: 0; padding: 4px 22px 16px; overflow: auto; list-style: none; }

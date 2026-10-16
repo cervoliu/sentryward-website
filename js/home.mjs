@@ -1,5 +1,5 @@
 // Annotated input and output files for the homepage’s “How SentryWard works” section.
-import { FILES } from './examples.mjs';
+import { FILES } from './examples.mjs?v=20261016-cutlass';
 
 const $ = id => document.getElementById(id);
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -28,36 +28,32 @@ const hlPy = s => esc(s).replace(/(#.*$)|\b(def|return|from|import)\b/gm, (m, c,
 // Notes point at lines: PTX line numbers, or the first line containing a JSON key (with its whole block).
 const NOTES = {
   ptx: [
-    [[11], '<b>PTX for Blackwell, exactly as the compiler emitted it.</b> Kernels written in CUDA C++, CUTLASS, Triton or TileLang all reach this form; SentryWard reads these instructions directly, with no IR to write and nothing to annotate.'],
-    [[13], '<b>The kernel to verify.</b> A PTX file can hold several entries; input.json names this one. (Its mangled name is shortened here.)'],
-    [[14, 15, 16, 17, 18, 19, 20, 21, 22, 23], '<b>Ten parameters: five pointers and five scalars.</b> The PTX gives only their types; input.json says what each one is.'],
-    [[473], '<b>The barrier PyTorch 2.9.0 added.</b> Without it, as in PyTorch 2.8.0, the read at line 498 may see the gradient before thread 0 has written it at line 470.'],
+    [[59], '<b>The compiler’s output, unchanged.</b> SentryWard reads the PTX directly, with nothing to write or annotate. Only the beginning and end of the file appear here; the <a href="https://github.com/gpu-verifier/sentryward/blob/main/corpus/cutlass__dense-gemm-f16-tma-1sm__sm_100a.ptx">full file</a> has 4,035 lines.'],
   ],
   input: [
-    ['"entry"', '<b>Which kernel</b> in the PTX file (name shortened here).'],
-    ['"launch"', '<b>One launch:</b> one block of 128 threads, no cluster, no dynamic shared memory. A result covers every schedule of this launch.'],
-    ['"arguments"', '<b>Values for the scalars:</b> nframe = 1, dim = 8 classes, margin = 1.0. weights is a null pointer, so there are no class weights.'],
-    ['"declarations"', '<b>What each parameter is.</b> Every pointer becomes a symbolic object (gradInput, gradOutput, input, target): no tensor data goes in, so no test data decides the result.'],
-    ['"shape_arrays"', '<b>Fixed, read-only contents</b> for an array the kernel indexes with: target holds class 5, for the whole run.'],
-    ['"assumptions"', '<b>Assumptions about the hardware model,</b> each documented in ASSUMPTIONS.md. The result lists every one, whether it was enabled and whether it was triggered.'],
-    ['"branch_decisions"', '<b>A branch on tensor data, decided explicitly.</b> Such branches are off by default; this scenario takes the one where every margin is violated, and the result records the decision.'],
+    ['"entry"', '<b>Kernel entry:</b> the kernel to verify in the PTX file.'],
+    ['"launch"', '<b>Launch configuration:</b> one block of 256 threads (eight warps), no cluster, and 227 KB of dynamic shared memory. A result covers every schedule of this launch.'],
+    ['"arguments"', '<b>Input parameter specification:</b> M = 64, N = 128 and K = 128, a single output tile; alpha = 1 and beta = 0, so D is the plain product. Most of the omitted fields belong to the tile scheduler.'],
+    ['"assumptions"', '<b>Model assumptions:</b> each documented in ASSUMPTIONS.md. The result lists every one, whether it was enabled and whether it was triggered.'],
   ],
   reference: [
-    ['def reference', '<b>A plain Python function named reference,</b> written with PyTorch. It runs as ordinary Python; SentryWard captures what it computes.'],
-    ['return', '<b>No separate input file:</b> its arguments are derived from input.json, through the binding.'],
+    ['def reference', '<b>Reference function:</b> a plain Python function named reference, written with PyTorch. It runs as ordinary Python; SentryWard captures what it computes.'],
+    ['return', '<b>Arguments:</b> derived from input.json through the binding; there is no separate input file.'],
   ],
   binding: [
-    ['"left_inputs"', '<b>Folded here:</b> the layout of every buffer the comparison reads, and (in checker_context) a predicate that states the authorized branch.'],
-    ['"outputs"', '<b>The output to compare:</b> gradInput, a 1 × 8 tensor of 4-byte values, in the kernel and in the reference.'],
-    ['"output_value_semantics"', '<b>Real arithmetic:</b> values are compared as real numbers, not as floating point.'],
-    ['"reference"', '<b>The reference’s arguments, in order:</b> three tensors read from kernel buffers, and margin from kernel parameter 8.'],
+    ['"left_inputs"', '<b>Input layouts:</b> every buffer the comparison reads, as laid out for the reference (left) and for the kernel (right); folded here.'],
+    ['"outputs"', '<b>Output to compare:</b> D, a 64 × 128 tensor of 2-byte values. The kernel stores it column by column (right strides), PyTorch row by row (left strides).'],
+    ['"output_value_semantics"', '<b>Value semantics:</b> values are compared as real numbers, not as floating point.'],
+    ['"reference"', '<b>Reference arguments:</b> A and B, in order, two FP16 tensors read from the kernel’s input buffers.'],
   ],
   output: [
-    ['"result"', '<b>One of 14 result categories.</b> verified means synchronization, memory and equivalence all passed; without a reference, a pass is race_free.'],
-    ['"checks"', '<b>Each check on its own:</b> passed, failed, incomplete, not_run or not_requested.'],
-    ['"diagnostics"', '<b>The details of a failure,</b> with its witness, would be here. This kernel has none.'],
-    ['"counts"', '<b>The size of what was checked:</b> 128 threads, 814 instructions, 1,628 events.'],
-    ['"pipeline_elapsed_seconds"', '<b>0.04 seconds</b> and 118 MiB at peak, for this kernel.'],
+    ['"result"', '<b>Result:</b> one of 14 categories. verified means synchronization, memory and equivalence all passed; without a reference, a pass is race_free.'],
+    ['"checks"', '<b>Per-check status:</b> passed, failed, incomplete, not_run or not_requested.'],
+    ['"diagnostics"', '<b>Diagnostics:</b> the details of a failure, with its witness. This kernel has none.'],
+    ['"warnings"', '<b>Warnings:</b> issues that do not fail a check. This run has 341,248, all duplicate TMA stores.'],
+    ['"counts"', '<b>Analysis statistics:</b> 256 threads, 34,414 instructions, 234,124 events.'],
+    ['"assumptions"', '<b>Assumptions:</b> each one, with whether it was enabled and triggered.'],
+    ['"pipeline_elapsed_seconds"', '<b>Time and memory:</b> 7.9 seconds and 868 MiB at peak.'],
   ],
 };
 const FILE_TABS = [['ptx', 'kernel.ptx', 'required'], ['input', 'input.json', 'required'], ['reference', 'reference.py', 'for equivalence'],

@@ -11,7 +11,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/site.css?v=20261016-headings">
-<link rel="stylesheet" href="css/home.css?v=20261016-simplified">
+<link rel="stylesheet" href="css/home.css?v=20261016-cutlass">
 </head>
 <body class="release-page">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -153,7 +153,7 @@
 
   <section class="release-section" id="how-it-works" aria-labelledby="how-it-works-title">
     <h2 id="how-it-works-title">How SentryWard works</h2>
-    <p class="reading">PyTorch&rsquo;s MultiMarginLoss backward kernel, with the barrier that PyTorch 2.9.0 added, from <a href="https://github.com/gpu-verifier/sentryward/tree/main/examples/pytorch__aten_MultiMarginLoss__sm_100a">SentryWard&rsquo;s examples</a>. Pick a file in the command; the numbered notes point at its lines.</p>
+    <p class="reading">Verifying a CUTLASS GEMM from <a href="https://github.com/gpu-verifier/sentryward/tree/main/examples/cutlass__dense-gemm-f16-tma-1sm__sm_100a">SentryWard&rsquo;s examples</a> against its PyTorch reference.</p>
     <div class="lp-files" id="files">
       <div class="lp-cmdbar" id="fcmd"><span class="p">$</span><span class="w">sentryward</span><button data-f="ptx">kernel.ptx</button>--input<button data-f="input">input.json</button>--reference<button data-f="reference">reference.py</button>--reference-binding<button data-f="binding">reference_binding.json</button>&gt;<button data-f="output">output.json</button></div>
       <div class="lp-ftabs" id="ftabs" role="tablist" aria-label="Files"></div>
@@ -195,6 +195,6 @@ print(result["result"], result["checks"])</code></pre>
   </section>
 </main>
 <footer><div class="footer-in"><span>&copy; 2026 The SentryWard Team</span><nav aria-label="Footer navigation"><a href="blog/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 4h6a3 3 0 0 1 3 3v14a4 4 0 0 0-4-2H4zM13 7a3 3 0 0 1 3-3h5v15h-4a4 4 0 0 0-4 2"/></svg><span>Blog</span></a><a href="https://github.com/gpu-verifier/sentryward"><svg class="nav-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 .5a12 12 0 0 0-3.79 23.39c.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.42-4.04-1.42-.55-1.39-1.33-1.76-1.33-1.76-1.09-.75.08-.73.08-.73 1.2.08 1.84 1.23 1.84 1.23 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.23-3.22-.12-.3-.53-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6 0c2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.24 2.88.12 3.18.77.84 1.23 1.91 1.23 3.22 0 4.61-2.81 5.62-5.49 5.92.43.37.81 1.1.81 2.22v3.13c0 .32.22.7.83.58A12 12 0 0 0 12 .5Z"/></svg><span>Github</span></a><a href="results/"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11m5-7h3m-3 4h3"/></svg><span>Results</span></a></nav></div></footer>
-<script type="module" src="js/home.mjs?v=20261016-simplified"></script>
+<script type="module" src="js/home.mjs?v=20261016-cutlass"></script>
 </body>
 </html>

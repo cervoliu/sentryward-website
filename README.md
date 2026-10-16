@@ -98,8 +98,9 @@ if the optional embedded study is missing or invalid; it does not substitute the
 
 The homepage includes a narrated 2:40 video with native playback controls and English and Chinese
 subtitles. “How SentryWard works” follows “What SentryWard verifies” and presents the annotated
-files of PyTorch's MultiMarginLoss backward kernel. File tabs and numbered notes connect the PTX,
-input configuration, reference, binding, and verification output.
+files of a CUTLASS GEMM from SentryWard's examples, verified against its PyTorch reference. File
+tabs and numbered notes connect the PTX, input configuration, reference, binding, and verification
+output; the PTX tab shows the start and end of the file and links to the full file.
 
 The browser playground is no longer part of the homepage. Its earlier WebAssembly engine,
 fixtures, build tooling, and service worker remain in the repository, but the homepage does not
