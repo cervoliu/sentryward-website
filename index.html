@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Inconsolata:wght@400;600&display=swap">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/site.css?v=20261015-workflows3">
+<link rel="stylesheet" href="css/site.css?v=20261015-workflows4">
 </head>
 <body class="release-page">
 <a class="skip-link" href="#main">Skip to content</a>
@@ -62,11 +62,11 @@
       </ol>
       <div class="workflow-feedback manual-feedback"><span>Human feedback → agent revision</span></div>
       </div>
-      <ul class="workflow-notes" aria-label="Limitations of manual validation">
-        <li><strong>Time-consuming</strong><span>A person must review each revision.</span></li>
-        <li><strong>Error-prone</strong><span>Rare interleavings are easy to miss.</span></li>
-        <li><strong>Limited coverage</strong><span>Tests sample inputs and schedules.</span></li>
-        <li><strong>Hard to scale</strong><span>More candidates need more review.</span></li>
+      <ul class="workflow-notes" role="list" aria-label="Limitations of manual validation">
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg><strong>Time-consuming</strong><span>A person must review each revision.</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg><strong>Error-prone</strong><span>Rare interleavings are easy to miss.</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg><strong>Limited coverage</strong><span>Tests sample inputs and schedules.</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v6m0 4h.01"/></svg><strong>Hard to scale</strong><span>More candidates need more review.</span></li>
       </ul>
       </div>
       <figcaption>Automated generation stops at a manual validation step.</figcaption>
@@ -99,11 +99,11 @@
       </ol>
       <div class="workflow-feedback automatic-feedback"><span>Diagnostics → agent revision</span></div>
       </div>
-      <ul class="workflow-notes" aria-label="Advantages of SentryWard">
-        <li><strong>Fast verification</strong><span><a href="results/?group=verified">10.3 s median</a> across 52 verified configurations.&dagger;</span></li>
-        <li><strong>Strong guarantees</strong><span>Proofs cover every execution schedule.*</span></li>
-        <li><strong>Fully automated</strong><span>Agents call the CLI or Python API.</span></li>
-        <li><strong>Actionable evidence</strong><span>Witnesses help agents locate and repair bugs.</span></li>
+      <ul class="workflow-notes" role="list" aria-label="Advantages of SentryWard">
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-7"/></svg><strong>Fast verification</strong><span><a href="results/?group=verified">10.3 s median</a> across 52 verified configurations.&dagger;</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-7"/></svg><strong>Strong guarantees</strong><span>Proofs cover every execution schedule.*</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-7"/></svg><strong>Fully automated</strong><span>Agents call the CLI or Python API.</span></li>
+        <li><svg class="workflow-note-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-7"/></svg><strong>Actionable evidence</strong><span>Witnesses help agents locate and repair bugs.</span></li>
       </ul>
       </div>
       <figcaption>Verification and diagnostic feedback close the automated loop.</figcaption>
