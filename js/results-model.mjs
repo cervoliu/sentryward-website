@@ -6,6 +6,7 @@ export const VERDICTS = {
   invalid_lifecycle: { label: 'Invalid lifecycle', group: 'findings' },
   not_wellsynced: { label: 'Not well-synchronized', group: 'findings' },
   unsupported: { label: 'Unsupported', group: 'inconclusive' },
+  equivalence_not_proven: { label: 'Equivalence not proven', group: 'inconclusive' },
   memory_budget_exceeded: { label: 'Memory limit', group: 'inconclusive' },
   timeout: { label: 'Timeout', group: 'inconclusive' },
   analysis_budget_exceeded: { label: 'Analysis limit', group: 'inconclusive' },
@@ -54,6 +55,33 @@ export function validateSnapshot(data) {
   return data;
 }
 
+// Optional measurements and per-check outcomes may be absent from the live catalog.
+export function validateResults(data) {
+  if (data?.schema !== 'sentryward.kernel-results.v1' || !Array.isArray(data.results) || !data.results.length) {
+    throw new Error('Unsupported or empty results catalog.');
+  }
+  const source = data.verification_results_source;
+  if (source?.repository !== 'gpu-verifier/sentryward' || !/^[0-9a-f]{40}$/.test(source.revision) ||
+      typeof source.path !== 'string' || !/^[0-9a-f]{64}$/.test(source.sha256)) {
+    throw new Error('Missing results provenance.');
+  }
+  const names = new Set();
+  const counts = {};
+  for (const row of data.results) {
+    if (typeof row.name !== 'string' || !row.name || names.has(row.name) || typeof row.result !== 'string' || !row.result ||
+        (row.diagnostics !== undefined && !Array.isArray(row.diagnostics))) {
+      throw new Error('Invalid or duplicate kernel record.');
+    }
+    names.add(row.name);
+    counts[row.result] = (counts[row.result] || 0) + 1;
+  }
+  const keys = new Set([...Object.keys(counts), ...Object.keys(data.counts || {})]);
+  if (!data.counts || [...keys].some(key => (counts[key] || 0) !== data.counts[key])) {
+    throw new Error('Result counts do not match their records.');
+  }
+  return data;
+}
+
 export function summarize(rows) {
   const stats = { total: rows.length, verified: 0, findings: 0, inconclusive: 0, other: 0, conditional: 0, counts: {} };
   for (const row of rows) {
@@ -75,11 +103,11 @@ export function filterRows(rows, { search = '', library = '', verdict = '', grou
       VERDICTS[row.result]?.label || '', ...(row.diagnostics || []).map(d => d.code)].join(' ').toLowerCase();
     return terms.every(term => text.includes(term));
   });
-  const numeric = (a, b, key) => (Number.isFinite(b[key]) ? b[key] : -Infinity) - (Number.isFinite(a[key]) ? a[key] : -Infinity);
+  const numeric = (a, b) => (Number.isFinite(b) ? b : -Infinity) - (Number.isFinite(a) ? a : -Infinity);
   return filtered.sort((a, b) => {
     let order = 0;
-    if (sort === 'time') order = numeric(a, b, 'elapsed_seconds');
-    if (sort === 'memory') order = numeric(a, b, 'native_peak_rss_mib');
+    if (sort === 'time') order = numeric(analysisSeconds(a), analysisSeconds(b));
+    if (sort === 'memory') order = numeric(a.native_peak_rss_mib, b.native_peak_rss_mib);
     if (sort === 'removable' || sort === 'improvement') {
       const metric = row => sort === 'removable' ? row.syncStudy?.[scenario]?.removal.removable : runtimeReduction(row.syncStudy?.[scenario]?.performance);
       const left = metric(a), right = metric(b);
@@ -91,6 +119,11 @@ export function filterRows(rows, { search = '', library = '', verdict = '', grou
 }
 
 export function resultLabel(value) { return VERDICTS[value]?.label || value.replace(/_/g, ' '); }
+export function analysisSeconds(row) {
+  // Prefer the catalog's analysis time; retain support for historical snapshots.
+  const value = row.analysis_time_seconds !== undefined ? row.analysis_time_seconds : row.elapsed_seconds;
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
 export function formatSeconds(value) {
   if (!Number.isFinite(value)) return 'Not recorded';
   return value < 60 ? `${value.toFixed(value < 1 ? 2 : 1)} s` : `${(value / 60).toFixed(1)} min`;
