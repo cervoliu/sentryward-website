@@ -46,8 +46,10 @@ the page never falls back to the bundled historical snapshot.
 
 Search, library/result filters, sorting, pagination (200 records per page), and record permalinks
 run in the browser. The `sentryward.kernel-results.v1` schema contains verdicts, diagnostics,
-source-file paths, and optional synchronization-removal measurements. Summary counts are
-validated against the records. Missing analysis times, per-check outcomes, input hashes,
+source-file paths, analysis times, and optional synchronization-removal measurements. The table,
+kernel details, and time sorting use `analysis_time_seconds` in seconds (`elapsed_seconds` is
+supported for historical records). Summary counts are validated against the records.
+Missing analysis times, per-check outcomes, input hashes,
 and other optional fields remain “Not recorded”; they are not inferred from the verdict or
 copied from old records. `equivalence_not_proven` is an inconclusive outcome.
 

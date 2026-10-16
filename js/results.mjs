@@ -1,6 +1,6 @@
-import { VERDICTS, libraryOf, displayName, summarize, filterRows, resultLabel, formatSeconds, formatMemory } from './results-model.mjs?v=20261015-live';
+import { VERDICTS, libraryOf, displayName, summarize, filterRows, resultLabel, analysisSeconds, formatSeconds, formatMemory } from './results-model.mjs?v=20261015-analysis-time';
 
-import { REPOSITORY, RESULTS_PAGE, loadResults, embeddedStudy, sourceFileURL, loadInputConfig } from './results-source.mjs';
+import { REPOSITORY, RESULTS_PAGE, loadResults, embeddedStudy, sourceFileURL, loadInputConfig } from './results-source.mjs?v=20261015-analysis-time';
 
 import { SCENARIOS, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
 
@@ -177,7 +177,7 @@ function render() {
     resultCell.append(badge(row.result));
     tr.append(nameCell, resultCell);
     studyCells(row, tr);
-    tr.append(el('td', 'numeric', formatSeconds(row.elapsed_seconds)));
+    tr.append(el('td', 'numeric', formatSeconds(analysisSeconds(row))));
     fragment.append(tr);
   }
   $('kernel-rows').replaceChildren(fragment);
@@ -335,7 +335,7 @@ function showDetail(row) {
   }
   body.append(grid);
   const facts = el('dl', 'record-facts');
-  fact(facts, 'Elapsed time', formatSeconds(row.elapsed_seconds));
+  fact(facts, 'Analysis time', formatSeconds(analysisSeconds(row)));
   fact(facts, 'Native peak memory (RSS)', formatMemory(row.native_peak_rss_mib));
   fact(facts, 'Recorded warnings', `${number(row.warning_count)} · ${row.warnings_complete === true ? 'collection complete' : row.warnings_complete === false ? 'collection incomplete' : 'completion not recorded'}`);
   fact(facts, 'Memory analysis', row.memory_analysis_complete === true ? 'Complete' : row.memory_analysis_complete === false ? 'Incomplete' : 'Not recorded');

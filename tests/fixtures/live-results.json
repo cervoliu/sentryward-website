@@ -87,6 +87,11 @@
           "https://github.com/wmdi/wasp_verification/issues/295",
           "https://github.com/wmdi/wasp_verification/issues/296"
         ]
+      },
+      "analysis_time_seconds": 0.457962582,
+      "analysis_time_source": {
+        "path": "examples/tirx-basic-rmsnorm/output.json",
+        "field": "pipeline_elapsed_seconds"
       }
     },
     {
@@ -108,6 +113,11 @@
         "result": {
           "path": "examples/cutlass112_blackwell_ssd.compute_100a/output.json"
         }
+      },
+      "analysis_time_seconds": 500.074721047,
+      "analysis_time_source": {
+        "path": "examples/cutlass112_blackwell_ssd.compute_100a/output.json",
+        "field": "elapsed_seconds"
       }
     },
     {
@@ -135,6 +145,11 @@
         "reference_binding": {
           "path": "examples/tensorrt_llm__selective_scan_chunkscan_bf16_bf16__sm_100f/reference_binding.json"
         }
+      },
+      "analysis_time_seconds": 79.601578889,
+      "analysis_time_source": {
+        "path": "examples/tensorrt_llm__selective_scan_chunkscan_bf16_bf16__sm_100f/output.json",
+        "field": "pipeline_elapsed_seconds"
       }
     }
   ]

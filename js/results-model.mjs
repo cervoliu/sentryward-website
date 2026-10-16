@@ -55,7 +55,7 @@ export function validateSnapshot(data) {
   return data;
 }
 
-// The live catalog deliberately omits timing, per-check outcomes, and input hashes.
+// Optional measurements and per-check outcomes may be absent from the live catalog.
 export function validateResults(data) {
   if (data?.schema !== 'sentryward.kernel-results.v1' || !Array.isArray(data.results) || !data.results.length) {
     throw new Error('Unsupported or empty results catalog.');
@@ -103,11 +103,11 @@ export function filterRows(rows, { search = '', library = '', verdict = '', grou
       VERDICTS[row.result]?.label || '', ...(row.diagnostics || []).map(d => d.code)].join(' ').toLowerCase();
     return terms.every(term => text.includes(term));
   });
-  const numeric = (a, b, key) => (Number.isFinite(b[key]) ? b[key] : -Infinity) - (Number.isFinite(a[key]) ? a[key] : -Infinity);
+  const numeric = (a, b) => (Number.isFinite(b) ? b : -Infinity) - (Number.isFinite(a) ? a : -Infinity);
   return filtered.sort((a, b) => {
     let order = 0;
-    if (sort === 'time') order = numeric(a, b, 'elapsed_seconds');
-    if (sort === 'memory') order = numeric(a, b, 'native_peak_rss_mib');
+    if (sort === 'time') order = numeric(analysisSeconds(a), analysisSeconds(b));
+    if (sort === 'memory') order = numeric(a.native_peak_rss_mib, b.native_peak_rss_mib);
     if (sort === 'removable' || sort === 'improvement') {
       const metric = row => sort === 'removable' ? row.syncStudy?.[scenario]?.removal.removable : runtimeReduction(row.syncStudy?.[scenario]?.performance);
       const left = metric(a), right = metric(b);
@@ -119,6 +119,11 @@ export function filterRows(rows, { search = '', library = '', verdict = '', grou
 }
 
 export function resultLabel(value) { return VERDICTS[value]?.label || value.replace(/_/g, ' '); }
+export function analysisSeconds(row) {
+  // Prefer the catalog's analysis time; retain support for historical snapshots.
+  const value = row.analysis_time_seconds !== undefined ? row.analysis_time_seconds : row.elapsed_seconds;
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
 export function formatSeconds(value) {
   if (!Number.isFinite(value)) return 'Not recorded';
   return value < 60 ? `${value.toFixed(value < 1 ? 2 : 1)} s` : `${(value / 60).toFixed(1)} min`;
