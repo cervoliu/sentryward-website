@@ -57,8 +57,6 @@
 .post-page figure.wide { --figure-width: min(1000px, calc(100vw - 32px)); width: var(--figure-width); margin-left: calc((100% - var(--figure-width)) / 2); transform: none; }
 .back-link { margin: 48px 0 0; padding-top: 20px; border-top: 1px solid var(--rule); }
 /* Agent generation and verification workflows. */
-.workflow-input { margin: 24px 0 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 14px; }
-.workflow-input strong { margin-right: 12px; color: var(--text); }
 .workflow-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 20px; }
 .workflow-figure { --workflow-accent: #875b38; --workflow-border: #ded3c7; display: grid; grid-template-rows: auto 1fr; min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--workflow-border); border-top: 3px solid var(--workflow-accent); background: #fcfaf7; }
 .workflow-automatic { --workflow-accent: var(--hb); --workflow-border: #c5d6e5; background: #f5f9fc; }
