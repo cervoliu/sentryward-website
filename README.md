@@ -94,9 +94,39 @@ describe changes in kernel runtime relative to the original, not throughput spee
 The live loader validates removal counts and timings. The UI keeps verification results usable
 if the optional embedded study is missing or invalid; it does not substitute the old study file.
 
+## Overview film, example files, and playground
+
+The homepage adds three sections to the overview: a narrated 2:40 film with chapters and English and
+Chinese subtitles, the annotated files of one example kernel (PyTorch's MultiMarginLoss backward), and
+a playground where SentryWard checks a kernel in the browser.
+
+The playground runs `sentryward-ptx` from the SentryWard 0.1.0 PyPI sdist, compiled to WebAssembly by
+`scripts/engine/build.sh` (Emscripten; 64-bit memory, threads, Z3 5.1.0). It checks synchronization and
+memory without a reference; equivalence needs PyTorch, so the page points to
+`pip install "sentryward[reference]"` for that. The two PyTorch examples run live, on the PTX in SentryWard's
+corpus. The TileLang example replays the team's recorded run, and so do the PyTorch examples in a browser that
+cannot run the engine. Visitors can also add their own PTX; an input configuration is drafted from it when none
+is given. Files are read in the browser and never uploaded.
+
+Threads need a cross-origin-isolated page, which takes COOP and COEP headers that GitHub Pages cannot set.
+`sw.js` adds them to the homepage and the playground's worker scripts only. The first Run in a browser registers it
+and reloads the page once; later visits are isolated from the start. Under isolation, a cross-origin resource
+on the homepage loads without credentials (`COEP: credentialless`).
+
+To update the engine for a new SentryWard release, change `VER` and the sdist URL in `scripts/engine/build.sh`, run
+it, and check both PyTorch examples in the playground: the PyTorch 2.8.0 kernel reports `potential_race` between
+PTX lines 470 and 497, and the kernel with the barrier is `race_free`.
+
 ## Files
 
 - `index.html`: project overview and usage.
+- `js/home.mjs`, `js/examples.mjs`, `css/home.css`: homepage film chapters, example files, and playground.
+- `js/sim/`: SentryWard in the browser: `engine.js` loads the WebAssembly engine and mirrors `sentryward.verify()`,
+  `worker.js` runs it, `results.js` applies the public result contract, `examples/` holds the live examples, and
+  `engine/` holds the build output and its licenses (`NOTICE.txt`).
+- `scripts/engine/`: engine build script, the patch it applies to the sdist, and the SHA-256 shim that replaces OpenSSL.
+- `sw.js`: cross-origin isolation for the playground.
+- `media/`: the overview film, its subtitles, and its poster.
 - `blog/index.html`: technical article and author links.
 - `blog/verifying-warp-specialized-gpu-kernels/index.html`: legacy redirect to `/blog/`, preserving query strings and section anchors.
 - `css/style.css`: article and figure styles.
@@ -110,6 +140,7 @@ if the optional embedded study is missing or invalid; it does not substitute the
 - `scripts/update-verification-results.py`: authenticated, validated snapshot refresh.
 - `tests/results-source.test.mjs`: live schema, freshness, failure handling, studies, and input loading.
 - `tests/results-model.test.mjs`: historical snapshot integrity and query behavior checks.
+- `tests/home-examples.test.mjs`: the playground's shown lines, marks, and recorded witnesses match the PTX it runs.
 - `js/anim.js`: figure helpers and animation runtime.
 - `js/figs1.js`, `js/figs2.js`, `js/figs3.js`: interactive figures.
 
