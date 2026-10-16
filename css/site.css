@@ -60,7 +60,7 @@
 .workflow-input { margin: 24px 0 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); font-size: 14px; }
 .workflow-input strong { margin-right: 12px; color: var(--text); }
 .workflow-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; margin-bottom: 20px; }
-.workflow-figure { --workflow-accent: #875b38; --workflow-border: #ded3c7; display: grid; grid-template-rows: auto 1fr auto; min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--workflow-border); border-top: 3px solid var(--workflow-accent); background: #fcfaf7; }
+.workflow-figure { --workflow-accent: #875b38; --workflow-border: #ded3c7; display: grid; grid-template-rows: auto 1fr; min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--workflow-border); border-top: 3px solid var(--workflow-accent); background: #fcfaf7; }
 .workflow-automatic { --workflow-accent: var(--hb); --workflow-border: #c5d6e5; background: #f5f9fc; }
 .workflow-heading { margin-bottom: 20px; }
 .workflow-heading h3 { margin: 0; font-size: 18px; line-height: 1.4; font-weight: 600; }
@@ -92,7 +92,6 @@
 .workflow-verified { border-color: #8eacc8; }
 .workflow-feedback { min-height: 33px; margin: 12px 0 14px 14px; color: var(--workflow-accent); font-size: 11px; line-height: 1.5; }
 .workflow-feedback::before { content: "↶"; margin-right: 4px; }
-.workflow-figure figcaption { max-width: none; margin: 0; padding-top: 12px; border-top: 1px solid var(--workflow-border); text-align: left; font-size: 12px; line-height: 1.6; }
 @media (max-width: 800px) {
   .workflow-comparison { gap: 24px; }
   .workflow-body, .workflow-automatic .workflow-body { grid-template-columns: 1fr; gap: 10px; }
