@@ -6,6 +6,7 @@ export const VERDICTS = {
   invalid_lifecycle: { label: 'Invalid lifecycle', group: 'findings' },
   not_wellsynced: { label: 'Not well-synchronized', group: 'findings' },
   unsupported: { label: 'Unsupported', group: 'inconclusive' },
+  equivalence_not_proven: { label: 'Equivalence not proven', group: 'inconclusive' },
   memory_budget_exceeded: { label: 'Memory limit', group: 'inconclusive' },
   timeout: { label: 'Timeout', group: 'inconclusive' },
   analysis_budget_exceeded: { label: 'Analysis limit', group: 'inconclusive' },
@@ -50,6 +51,33 @@ export function validateSnapshot(data) {
   const keys = new Set([...Object.keys(counts), ...Object.keys(data.counts || {})]);
   if (!data.counts || [...keys].some(key => (counts[key] || 0) !== data.counts[key])) {
     throw new Error('Snapshot counts do not match its records.');
+  }
+  return data;
+}
+
+// The live catalog deliberately omits timing, per-check outcomes, and input hashes.
+export function validateResults(data) {
+  if (data?.schema !== 'sentryward.kernel-results.v1' || !Array.isArray(data.results) || !data.results.length) {
+    throw new Error('Unsupported or empty results catalog.');
+  }
+  const source = data.verification_results_source;
+  if (source?.repository !== 'gpu-verifier/sentryward' || !/^[0-9a-f]{40}$/.test(source.revision) ||
+      typeof source.path !== 'string' || !/^[0-9a-f]{64}$/.test(source.sha256)) {
+    throw new Error('Missing results provenance.');
+  }
+  const names = new Set();
+  const counts = {};
+  for (const row of data.results) {
+    if (typeof row.name !== 'string' || !row.name || names.has(row.name) || typeof row.result !== 'string' || !row.result ||
+        (row.diagnostics !== undefined && !Array.isArray(row.diagnostics))) {
+      throw new Error('Invalid or duplicate kernel record.');
+    }
+    names.add(row.name);
+    counts[row.result] = (counts[row.result] || 0) + 1;
+  }
+  const keys = new Set([...Object.keys(counts), ...Object.keys(data.counts || {})]);
+  if (!data.counts || [...keys].some(key => (counts[key] || 0) !== data.counts[key])) {
+    throw new Error('Result counts do not match their records.');
   }
   return data;
 }

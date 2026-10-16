@@ -1,14 +1,13 @@
-import { VERDICTS, libraryOf, displayName, validateSnapshot, summarize, filterRows, resultLabel, formatSeconds, formatMemory } from './results-model.mjs';
+import { VERDICTS, libraryOf, displayName, summarize, filterRows, resultLabel, formatSeconds, formatMemory } from './results-model.mjs?v=20261015-live';
 
-import { readInputConfig } from './kernel-inputs.mjs';
+import { REPOSITORY, RESULTS_PAGE, loadResults, embeddedStudy, sourceFileURL, loadInputConfig } from './results-source.mjs';
 
-import { SCENARIOS, validateStudy, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
+import { SCENARIOS, removalLabel, performanceLabel, runtimeReduction, summarizeStudy } from './sync-removal.mjs';
 
 const $ = id => document.getElementById(id);
 const PAGE_SIZE = 200;
-const repository = 'https://github.com/wmdi/wasp_verification';
-let snapshot, source, stats, rows, study, studyAvailable = false, state, openedKernel = null;
-let inputBundlePromise;
+const repository = REPOSITORY;
+let catalog, source, stats, rows, study, studyAvailable = false, state, openedKernel = null;
 const number = value => Number.isFinite(value) ? value.toLocaleString('en-US') : 'Not recorded';
 const el = (tag, className = '', text = '') => {
   const node = document.createElement(tag);
@@ -22,7 +21,6 @@ const link = (text, href, className = '') => {
   return a;
 };
 const appendText = (parent, text, className = '') => parent.append(el('p', className, text));
-const dateLabel = value => new Date(value + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const tone = verdict => Object.hasOwn(VERDICTS, verdict) ? `tone-${verdict}` : '';
 function badge(verdict) {
   const node = el('span', `verdict-badge ${tone(verdict)}`);
@@ -234,19 +232,17 @@ async function inputDetail(parent, row) {
   section.append(el('h3', '', 'Input configuration'));
   const content = el('div');
   content.setAttribute('aria-live', 'polite');
-  appendText(content, 'Loading recorded input…', 'detail-note');
+  appendText(content, 'Loading input configuration…', 'detail-note');
   section.append(content);
   parent.append(section);
   try {
-    inputBundlePromise ??= fetch('../data/kernel-input-configs.json').then(response => {
-      if (!response.ok) throw new Error('Input configurations unavailable.');
-      return response.json();
-    }).catch(error => { inputBundlePromise = undefined; throw error; });
-    const { config, content: raw } = await readInputConfig(await inputBundlePromise, row.files?.input);
+    const { config, content: raw } = await loadInputConfig(row.files?.input);
     // A different record may have been opened while the configuration was loading.
     if (!section.isConnected) return;
     content.replaceChildren();
-    appendText(content, 'Exact input for this verification run, matched to its recorded SHA-256. Historical removal experiments may use different inputs.', 'detail-note');
+    appendText(content, row.files.input.sha256
+      ? 'Input configuration matches the SHA-256 recorded in the results JSON. Historical removal experiments may use different inputs.'
+      : 'Current input configuration from the source repository’s main branch. The results JSON does not include an input hash; historical removal experiments may use different inputs.', 'detail-note');
     const launch = config.launch || {};
     const dims = value => Array.isArray(value) ? value.join(' × ') : 'Not recorded';
     const facts = el('dl', 'record-facts');
@@ -281,10 +277,9 @@ async function inputDetail(parent, row) {
     action.append(download);
     content.append(action);
   } catch (error) {
-    inputBundlePromise = undefined;
     if (!section.isConnected) return;
     content.replaceChildren();
-    appendText(content, 'The recorded input configuration could not be loaded or verified. Reopen this record to retry; verification results remain available.', 'detail-note');
+    appendText(content, 'The input configuration could not be loaded or verified. Reopen this record to retry; verification results remain available.', 'detail-note');
     console.warn('Kernel input configuration:', error);
   }
 }
@@ -335,7 +330,7 @@ function showDetail(row) {
   const grid = el('div', 'check-grid');
   for (const [key, label] of [['synchronization', 'Synchronization'], ['memory', 'Memory'], ['equivalence', 'Equivalence']]) {
     const card = el('div', 'check-card');
-    card.append(el('strong', '', label), check(row.checks[key]));
+    card.append(el('strong', '', label), check(row.checks?.[key]));
     grid.append(card);
   }
   body.append(grid);
@@ -345,7 +340,7 @@ function showDetail(row) {
   fact(facts, 'Recorded warnings', `${number(row.warning_count)} · ${row.warnings_complete === true ? 'collection complete' : row.warnings_complete === false ? 'collection incomplete' : 'completion not recorded'}`);
   fact(facts, 'Memory analysis', row.memory_analysis_complete === true ? 'Complete' : row.memory_analysis_complete === false ? 'Incomplete' : 'Not recorded');
   fact(facts, 'Run identifier (UTC)', row.run || 'Not recorded');
-  fact(facts, 'Snapshot', dateLabel(snapshot.snapshot_date));
+  fact(facts, 'Results source', 'gpu-verifier/sentryward · main');
   body.append(facts);
   inputDetail(body, row);
   studyDetail(body, row);
@@ -369,7 +364,7 @@ function showDetail(row) {
     const list = el('ul', 'diagnostic-list');
     for (const item of row.diagnostics) {
       const li = el('li');
-      li.append(el('code', '', item.code), el('span', '', `${item.stage} · ${number(item.count)} recorded`));
+      li.append(el('code', '', item.code), el('span', '', `${item.stage || 'Stage not recorded'}${Number.isFinite(item.count) ? ` · ${number(item.count)} recorded` : ''}`));
       list.append(li);
     }
     body.append(list);
@@ -388,13 +383,14 @@ function showDetail(row) {
   if (row.budgets) rawSection(body, 'Configured resource budgets', row.budgets);
   if (row.additional_completed_run) rawSection(body, 'Additional completed run', row.additional_completed_run);
   body.append(el('h3', '', 'Source files & recorded hashes'));
-  appendText(body, `Repository access is required. Links use the snapshot publishing revision. ${snapshot.uncommitted_changes ? 'The analyzed workspace had local changes, so linked files may differ from the recorded hashes.' : 'Compare the recorded hashes when reproducing a result.'}`, 'detail-note');
+  appendText(body, 'Links open the source repository’s main branch. Hashes are shown only when included in the results JSON.', 'detail-note');
   const files = el('ul', 'evidence-list');
   for (const [kind, file] of Object.entries(row.files || {})) {
     const item = el('li');
     if (typeof file.path !== 'string') continue;
-    const path = file.path.split('/').map(encodeURIComponent).join('/');
-    item.append(link(`${kind.replace(/_/g, ' ')} ↗`, `${repository}/blob/${source.revision}/${path}`), el('small', '', file.path), el('small', '', `SHA-256: ${file.sha256 || 'not recorded'}`));
+    let fileURL;
+    try { fileURL = sourceFileURL(file.path); } catch { continue; }
+    item.append(link(`${kind.replace(/_/g, ' ')} ↗`, fileURL), el('small', '', file.path), el('small', '', `SHA-256: ${file.sha256 || 'not recorded'}`));
     files.append(item);
   }
   body.append(files);
@@ -407,36 +403,42 @@ function showDetail(row) {
 }
 
 function updateProvenance() {
-  $('snapshot-date').textContent = `Snapshot · ${dateLabel(snapshot.snapshot_date)}`;
-  $('corpus-meta').textContent = `${number(rows.length)} configurations · ${new Set(rows.map(r => libraryOf(r.name))).size} libraries · ${stats.conditional} conditional analyses`;
-  $('conditional-note').textContent = `${stats.conditional} records specify configured branch scenarios. Their verdicts apply only to those scenarios. Records are marked “Conditional scope”; open one to inspect every recorded decision.`;
+  $('snapshot-date').textContent = 'Latest results · main';
+  $('corpus-meta').textContent = `${number(rows.length)} configurations · ${new Set(rows.map(r => libraryOf(r.name))).size} libraries`;
+  $('conditional-note').textContent = stats.conditional
+    ? `${stats.conditional} records specify configured branch scenarios. Their verdicts apply only to those scenarios. Open a marked record to inspect the recorded decisions.`
+    : 'The results JSON does not report configured branch scenarios. Consult the input configurations and linked verifier outputs for analysis scope.';
   const provenance = $('provenance');
+  provenance.replaceChildren();
   const p = el('p');
-  p.append(document.createTextNode('Source snapshot: '), link(`${source.repository} @ ${source.revision.slice(0, 7)}`, `${repository}/blob/${source.revision}/docs/kernel-verification-results.json`));
+  p.append(document.createTextNode('Loaded directly from '), link('gpu-verifier/sentryward · examples/results.json', RESULTS_PAGE), document.createTextNode(' on each page load. Reload to retrieve the latest results; the page does not run the verifier.'));
   provenance.append(p);
-  appendText(provenance, `Verifier workspace base: ${snapshot.worktree_base}. ${snapshot.uncommitted_changes ? 'The snapshot records uncommitted changes; the base commit alone does not reproduce the analyzed workspace.' : 'The snapshot reports no uncommitted changes.'}`);
-  appendText(provenance, `Snapshot SHA-256: ${source.sha256}`);
+  const origin = el('p');
+  const path = source.path.split('/').map(encodeURIComponent).join('/');
+  origin.append(document.createTextNode('Verification catalog source: '), link(`${source.repository} @ ${source.revision.slice(0, 7)}`, `${repository}/blob/${source.revision}/${path}`));
+  provenance.append(origin);
+  appendText(provenance, `Catalog source SHA-256: ${source.sha256}`);
   provenance.lastChild.style.overflowWrap = 'anywhere';
 }
 
 async function init() {
   try {
-    const responses = await Promise.all(['../data/kernel-verification-results.json', '../data/verification-source.json'].map(path => fetch(path)));
-    if (responses.some(response => !response.ok)) throw new Error('Snapshot unavailable.');
-    const [data, provenance] = await Promise.all(responses.map(response => response.json()));
-    snapshot = validateSnapshot(data);
-    source = provenance;
-    if (!/^[0-9a-f]{40}$/.test(source.revision) || !/^[0-9a-f]{64}$/.test(source.sha256)) throw new Error('Invalid source provenance.');
-
-    rows = snapshot.results;
+    catalog = await loadResults();
+    source = catalog.verification_results_source;
+    rows = catalog.results;
     try {
-      const response = await fetch('../data/sync-removal-results.json');
-      if (!response.ok) throw new Error('Synchronization study unavailable.');
-      study = validateStudy(await response.json(), new Set(rows.map(row => row.name)));
+      study = embeddedStudy(catalog);
+      if (!study) throw new Error('No synchronization study is included in the results JSON.');
       const studies = new Map(study.results.map(row => [row.name, row]));
       rows = rows.map(row => ({ ...row, syncStudy: studies.get(row.name) }));
       studyAvailable = true;
-      $('study-provenance').append(document.createTextNode('Experiment index: '), link(`${study.source.repository} @ ${study.source.revision.slice(0, 7)}`, `${repository}/blob/${study.source.revision}/examples/index.md`), document.createTextNode(`. Published ${study.source.published_at.slice(0, 10)}. Source repository access is required.`));
+      const studySource = study.source;
+      $('study-provenance').append(document.createTextNode('Experiment index: '), link(`${studySource.repository} @ ${studySource.revision.slice(0, 7)}`, `https://github.com/${studySource.repository}/blob/${studySource.revision}/${studySource.path}`));
+      if (studySource.published_at) $('study-provenance').append(document.createTextNode(`. Published ${studySource.published_at.slice(0, 10)}.`));
+      for (const paragraph of study.methodology || []) {
+        // Keep source wording as plain text; never insert upstream HTML.
+        appendText($('study-methodology'), paragraph.replace(/\*\*/g, '').replace(/`/g, ''));
+      }
     } catch (error) {
       $('with-study').disabled = true;
       console.warn('Synchronization study:', error);
@@ -473,8 +475,8 @@ async function init() {
       else if ($('kernel-detail').open) $('kernel-detail').close();
     });
   } catch (error) {
-    $('snapshot-date').textContent = 'Snapshot unavailable';
-    $('load-state').textContent = 'The database could not be loaded. Reload this page to try again, or download the JSON snapshot above.';
+    $('snapshot-date').textContent = 'Live results unavailable';
+    $('load-state').textContent = 'The latest results could not be loaded from GitHub. Reload to try again, or open the source JSON above. No saved snapshot is being shown.';
     $('load-state').className = 'data-notice';
     $('load-state').setAttribute('role', 'alert');
     console.error('Verification database:', error);
