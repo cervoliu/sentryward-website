@@ -7,3 +7,7 @@ Thumbs.db
 # Snapshot importer and tests
 __pycache__/
 *.py[cod]
+
+# The engine build (scripts/engine/build.sh): sources, build tree
+scripts/engine/_src/
+scripts/engine/_build/
