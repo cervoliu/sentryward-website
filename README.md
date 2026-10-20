@@ -118,6 +118,7 @@ page cross-origin isolated.
   `engine/` holds the build output and its licenses (`NOTICE.txt`).
 - `scripts/engine/`: engine build script, the patch it applies to the sdist, and the SHA-256 shim that replaces OpenSSL.
 - `sw.js`: cross-origin isolation worker for the demo page.
+- `slack/index.html`: forwards `/slack/`, which every page's navigation links to, to the Slack workspace invite. When the invite link changes, update it here.
 - `media/`: the overview film, its subtitles, and its poster.
 - `blog/index.html`: technical article and author links.
 - `blog/verifying-warp-specialized-gpu-kernels/index.html`: legacy redirect to `/blog/`, preserving query strings and section anchors.
